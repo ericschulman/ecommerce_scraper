@@ -10,6 +10,8 @@ from lxml import etree
 #####amazon
 #searchbox amazon
 'https://www.amazon.com/s?k=drills'
+['salesrank','date-desc-rank']
+
 #searchbox walmart
 'https://www.walmart.com/search/?query=drills'
 
