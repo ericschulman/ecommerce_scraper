@@ -36,13 +36,11 @@ class GenericScraper:
 			page = urllib.request.Request(url, headers=hdr)
 			response = urllib.request.urlopen(page)
 			rawtext = response.read()
-			return str(rawtext)
+			return rawtext
 		except urllib.error.HTTPError as err:
 			print(err, url)
-			empty = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><script src="script.js"></script></head></html>'
+			empty = b'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><script src="script.js"></script></head></html>'
 			return empty
-
-
 
 	def search_url(self, query):
 		return ''
@@ -62,8 +60,8 @@ class GenericScraper:
 	def write_data(self):
 		pass
 
-	def get_ids(self):
-		return []
+	def get_ids(self,num_ids,query='drills'):
+		return [None]*num_ids
 
 
 class AmazonScraper(GenericScraper):
@@ -72,21 +70,29 @@ class AmazonScraper(GenericScraper):
 		super(AmazonScraper, self).__init__(db)
 		self.base_url = 'https://www.amazon.com/'
 
+	def get_page(self,url):
+		rawpage = super(AmazonScraper,self).get_page(url)
+		return str(rawpage)
 
 	def search_url(self, query):
 		url =  self.base_url + 's?k=%s&s=%s'%(query,'salesrank')
 		return url
 
+	def prod_url(self, prod_id):
+		return  self.base_url + 'dp/'+prod_id
 
-	def get_ids(self):
-		url = self.search_url('drills')
+
+	def get_ids(self,num_ids,query='drills'):
+		url = self.search_url(query)
 		rawtext = self.get_page(url)
 		tree = html.fromstring(rawtext)
 		search_rows = tree.xpath("//*[@class='s-result-list s-search-results sg-row']")[0]
 		asins = []
-		for i in range(10):
+		i=0
+		while( i < len(search_rows) and  len(asins) < num_ids ):
 			if not ('AdHolder' in search_rows[i].attrib['class']) and search_rows[i].attrib['data-asin'] !='':
 				asins.append(search_rows[i].attrib['data-asin'])
+			i=i+1
 		return asins
 
 
@@ -99,7 +105,7 @@ class AmazonScraper(GenericScraper):
 		
 
 	def get_data(self, asin):
-		url = 'https://www.amazon.com/dp/' + asin
+		url =  self.prod_url(asin)
 		rawtext = self.get_page(url)
 		tree = html.fromstring(rawtext)
 		manuf = tree.xpath("//*[@id='bylineInfo']")[0]
@@ -119,6 +125,8 @@ class AmazonScraper(GenericScraper):
 
 	def lookup_upc(self, prod_id):
 		brand,item = self.get_data(prod_id)
+		#TODO: write data that i'm getting outside of this...
+		#TODO: make this part of the generic class
 		url = 'https://www.upcitemdb.com/upc/%s %s'%(brand,item)
 		rawtext = self.get_page(url)
 		tree = html.fromstring(rawtext)
@@ -130,8 +138,21 @@ class AmazonScraper(GenericScraper):
 		return link_cand[0][0].text
 
 
+
 	def lookup_id(self, upc):
-		#TODO implement
+		#TODO: save some of this data since i have it
+		#TODO: make an extra query to amazon using the product names?
+		url = 'https://www.upcitemdb.com/upc/' + upc
+		rawtext = self.get_page(url)
+		tree = html.fromstring(rawtext)
+		table = tree.xpath("//*[@class='detail-list']")
+		if len(table) == 0:
+			return None
+		table = table[0]
+		table = pd.read_html(etree.tostring(table, encoding='utf8', method='html'))[0]
+		table = table.set_index(0)
+		if  'Amazon ASIN:' in (table.index):
+			return table.loc['Amazon ASIN:'][1]
 		return None
 
 
@@ -144,43 +165,80 @@ class WalmartScraper(GenericScraper):
 		self.base_url = 'https://www.walmart.com/'
 
 
+	def get_page(self,url):
+		rawpage = super(WalmartScraper,self).get_page(url)
+		return rawpage.decode()
+
+
 	def search_url(self, query):
-		url =  self.base_url + 'search/?cat_id=0&query=%s'%(query)
+		url =  self.base_url + 'search/?cat_id=0&query=%s&sort=%s'%(query,'best_seller')
+		return url
+
+	def prod_url(self, prod_id):
+		url =  self.base_url + 'ip/' + prod_id
 		return url
 
 
-	def lookup_id(self, upc):
-
-		url = self.search_url(upc)
+	def get_ids(self,num_ids,query='drills'):
+		url = self.search_url(query)
 		rawtext1 = self.get_page(url)
 		tree = html.fromstring(rawtext1)
 
 		link_cand = tree.xpath("//*[@id='searchContent']")
 		if len(link_cand) ==0:
-			return None
+			return []
 		link_cand = link_cand[0]
-		rawdata = link_cand.text.replace('\\"','"')
-		rawdata = rawdata.replace("\\'","'")
-		datastore = json.loads(rawdata)
-		for item in datastore['searchContent']['preso']['items']:
-			if upc[:-1] in str(item['upc']) :
-				brand = item['brand']
-				#url = 'https://www.walmart.com/ip/' + 
-				return item['productId']
-		return None
+		datastore = json.loads(link_cand.text)
+		items = datastore['searchContent']['preso']['items']
+		i=0
+		prod_ids = []
+		while i < len(items) and  len(prod_ids) < num_ids:
+			prod_ids.append(items[i]['productId'])
+			i = i+1
+		return prod_ids
+
+
+	def lookup_id(self, upc):
+		ids = self.get_ids(1,query=upc)
+		if len(ids) > 0:
+			return ids[0]
+		else:
+			return None
 
 
 	def lookup_upc(self, prod_id):
-		return None
+		url = self.prod_url(prod_id)
+		rawtext = self.get_page(url)
+		tree = html.fromstring(rawtext)
+		upc_data = tree.xpath("//*[@id='item']")
+		if len(upc_data) ==0:
+			return None
+
+		upc_data = upc_data[0]
+
+		#TODO: write a function to take care of this problem...
+		datastore = json.loads(upc_data.text)
+		
+		#deal with this craziness that is walmart's db
+		try:
+			keyinfo = datastore['item']['product']['products']
+			real_id= list(keyinfo.keys())[0]
+			upc =   keyinfo[real_id]['upc']
+			return upc
+
+		except KeyError:
+			return None
+
+
 
 
 
 if __name__ == '__main__':
 
-	am_scrap = AmazonScraper('db/scrape.db')
-	wal_scrap = WalmartScraper('db/scrape.db')
+	am_scrap = WalmartScraper('db/scrape.db')  
+	wal_scrap = AmazonScraper('db/scrape.db')
 
-	asins = am_scrap.get_ids()
+	asins = am_scrap.get_ids(5)
 	print(asins)
 	upcs = []
 	for asin in asins:
