@@ -212,6 +212,7 @@ class WalmartScraper(GenericScraper):
 		tree = html.fromstring(rawtext)
 		upc_data = tree.xpath("//*[@id='item']")
 		if len(upc_data) ==0:
+			print('yo1')
 			return None
 
 		upc_data = upc_data[0]
@@ -219,6 +220,7 @@ class WalmartScraper(GenericScraper):
 		#TODO: write a function to take care of this problem...
 		datastore = json.loads(upc_data.text)
 		
+
 		#deal with this craziness that is walmart's db
 		try:
 			keyinfo = datastore['item']['product']['products']
@@ -227,7 +229,13 @@ class WalmartScraper(GenericScraper):
 			return upc
 
 		except KeyError:
-			return None
+			return datastore['item']['product']['buyBox']['products'][0]['upc']
+
+		except KeyError:
+			pass
+			print('yo')
+
+		return None
 
 
 
@@ -235,20 +243,5 @@ class WalmartScraper(GenericScraper):
 
 if __name__ == '__main__':
 
-	am_scrap = WalmartScraper('db/scrape.db')  
-	wal_scrap = AmazonScraper('db/scrape.db')
-
-	asins = am_scrap.get_ids(5)
-	print(asins)
-	upcs = []
-	for asin in asins:
-		upc_lookup = am_scrap.lookup_upc(asin)
-		if upc_lookup is not None:
-			upcs.append(upc_lookup)
-	print(upcs)
-
-	walmartids = []
-	for upc in upcs:
-		if upc is not None:
-			walmartids.append(wal_scrap.lookup_id(upc) )
-	print(walmartids)
+	wal_scrap = WalmartScraper('db/scrape.db')
+	print(wal_scrap.lookup_upc('6JIWA4VQNBON'))
