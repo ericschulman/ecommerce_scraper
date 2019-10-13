@@ -70,14 +70,29 @@ class GenericScraper:
 		return self.ids[prod_id]
 
 	def write_data(self):
-		query2 = 'INSERT INTO fp_edges VALUES (?,?,?);'
+		conn = sqlite3.connect(self.db + 'scrape.db')
+		c = conn.cursor()
+		for key in self.data.keys():
+			query_pt1 = " INSERT INTO prices(website,prod_id"
+			query_pt2 = " VALUES ('%s','%s'"%(self.base_url,key)
+			for sub_key in self.data[key].keys():
+				if self.data[key][sub_key] is not None:
+					query_pt1 = query_pt1 + "," + sub_key
+					query_pt2 = query_pt2 + ",'%s'"%self.data[key][sub_key]
+			query_pt1 = query_pt1 + ")"
+			query_pt2 = query_pt2 + ")"
+			c.execute(query_pt1 + query_pt2)
+
+		conn.commit()
+
 
 	def create_id(self,prod_id):
 		date = datetime.datetime.now()
 		date = date.strftime("%m/%d/%Y")
 		self.data[prod_id] = {'date':date, 'upc':None, 'manufacturer':None, 
+		'product':None,
 		'model':None, 'price':None, 'sale_price':None, 'in_stock':None, 
-		'max_qty':None, 'seller':None, 'lisitings':None, 'arrives':None,
+		'max_qty':None, 'seller':None, 'listings':None, 'arrives':None,
 		'weight':None, 'reviews':None, 'rating':None}
 
 
@@ -156,7 +171,6 @@ class AmazonScraper(GenericScraper):
 	def lookup_upc(self, prod_id):
 
 		data = self.get_data(prod_id)
-		print(data)
 		brand = data['manufacturer']
 		item  = data['model']
 		#TODO: write data that i'm getting outside of this...
@@ -256,7 +270,6 @@ class WalmartScraper(GenericScraper):
 		tree = html.fromstring(rawtext)
 		upc_data = tree.xpath("//*[@id='item']")
 		if len(upc_data) ==0:
-			print('yo1')
 			return None
 
 		upc_data = upc_data[0]
@@ -288,12 +301,13 @@ class WalmartScraper(GenericScraper):
 
 if __name__ == '__main__':
 
-	am_scrap = WalmartScraper('db/')
-	#print(am_scrap.lookup_upc('B006V6YAPI'))
-	print(am_scrap.lookup_upc('303303799'))
-	print(am_scrap.lookup_id('889526116651'))
+	am_scrap = AmazonScraper('db/')
+	print(am_scrap.lookup_upc('B006V6YAPI'))
+	#print(am_scrap.lookup_upc('303303799'))
+	#print(am_scrap.lookup_id('889526116651'))
 	print(am_scrap.data)
 	am_scrap.add_ids(3)
 	print(am_scrap.data)
+	am_scrap.write_data()
 	#wal_scrap = WalmartScraper('db/')
 	#print(wal_scrap.lookup_upc('6JIWA4VQNBON'))

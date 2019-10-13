@@ -21,7 +21,7 @@ class MetaScraper():
 
 			#figure our their upc code
 			upcs = []
-			for prod_id in prod_ids:
+			for prod_id in prod_ids.keys():
 				upc_lookup = scraper.lookup_upc(prod_id)
 				if upc_lookup is not None:
 					upcs.append(upc_lookup)
@@ -42,6 +42,10 @@ class MetaScraper():
 				print(other_scraper_ids,other_scraper.base_url)
 				other_ids.append(other_scraper_ids)
 
+	def write_data(self):
+		for scraper in self.scrapers:
+			scraper.write_data()
+
 
 
 if __name__ == '__main__':
@@ -49,3 +53,4 @@ if __name__ == '__main__':
 	scrapers = [WalmartScraper(db), AmazonScraper(db)]
 	ms  = MetaScraper(scrapers)
 	ms.run_scrape()
+	ms.write_data()
