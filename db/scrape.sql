@@ -1,0 +1,20 @@
+CREATE TABLE "prices" (
+	"website"	INTEGER,
+	"date"	INTEGER,
+	"prod_id"	INTEGER,
+	"upc"	INTEGER,
+	"product"	INTEGER,
+	"manufactuer"	INTEGER,
+	"model"	INTEGER,
+	"price"	INTEGER,
+	"sale_price"	INTEGER,
+	"in_stock"	INTEGER,
+	"max_qty"	INTEGER,
+	"seller"	INTEGER,
+	"listings"	INTEGER,
+	"arrives"	INTEGER,
+	"weight"	INTEGER,
+	"reviews"	INTEGER,
+	"rating"	INTEGER,
+	PRIMARY KEY("prod_id","date","website")
+)

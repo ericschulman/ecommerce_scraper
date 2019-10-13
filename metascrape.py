@@ -16,7 +16,7 @@ class MetaScraper():
 		for i, scraper in enumerate(self.scrapers):
 
 			#get a list of product ids from each website
-			prod_ids = scraper.get_ids(5)
+			prod_ids = scraper.add_ids(5)
 			print(prod_ids)
 
 			#figure our their upc code
@@ -45,7 +45,7 @@ class MetaScraper():
 
 
 if __name__ == '__main__':
-	db = 'db/scrape.db'
+	db = 'db/'
 	scrapers = [WalmartScraper(db), AmazonScraper(db)]
 	ms  = MetaScraper(scrapers)
 	ms.run_scrape()
