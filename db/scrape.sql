@@ -6,14 +6,14 @@ CREATE TABLE "prices" (
 	"product"	TEXT,
 	"manufacturer"	TEXT,
 	"model"	TEXT,
-	"price"	TEXT,
-	"sale_price"	TEXT,
-	"in_stock"	TEXT,
-	"max_qty"	TEXT,
+	"price"	NUMERIC,
+	"sale_price"	NUMERIC,
+	"in_stock"	INTEGER,
+	"max_qty"	INTEGER,
 	"seller"	TEXT,
-	"listings"	TEXT,
+	"listings"	INTEGER,
 	"arrives"	TEXT,
-	"weight"	TEXT,
-	"reviews"	TEXT,
-	"rating"	TEXT
+	"weight"	INTEGER,
+	"reviews"	INTEGER,
+	"rating"	NUMERIC
 )
