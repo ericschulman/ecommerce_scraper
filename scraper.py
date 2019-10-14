@@ -61,7 +61,9 @@ class GenericScraper:
         return ''
 
     def lookup_upc(self, prod_id):
-        return None
+        if prod_id not in self.data.keys():
+            self.create_id(prod_id)
+        return self.data[prod_id]['upc']
 
     def lookup_id(self, upc):
         return None
@@ -151,8 +153,6 @@ class AmazonScraper(GenericScraper):
         
 
     def get_data(self, asin):
-        if asin not in self.data.keys():
-            self.create_id(asin)
 
         url =  self.prod_url(asin)
         rawtext = self.get_page(url)
@@ -333,18 +333,7 @@ class WalmartScraper(GenericScraper):
         return prod_ids
 
 
-    def lookup_id(self, upc):
-        prod_ids = self.add_ids(1,query=upc)
-        if prod_ids != []:
-            self.data[prod_ids[0]]['upc'] = upc
-            return prod_ids[0]
-        return None
-
-
-    def lookup_upc(self, prod_id):
-        if prod_id not in self.data.keys():
-            self.create_id(prod_id)
-
+    def get_data(self, prod_id):
         url = self.prod_url(prod_id)
         rawtext = self.get_page(url)
         tree = html.fromstring(rawtext)
@@ -353,37 +342,44 @@ class WalmartScraper(GenericScraper):
             return None
 
         upc_data = upc_data[0]
-
-        #TODO: write a function to take care of this problem...
         datastore = json.loads(upc_data.text)
         
         #deal with this craziness that is walmart's db
         try:
             keyinfo = datastore['item']['product']['products']
+            print('yo')
             real_id= list(keyinfo.keys())[0]
             upc =   keyinfo[real_id]['upc']
             self.data[prod_id]['upc'] = upc
-            return upc
 
         except KeyError:
-            upc = datastore['item']['product']['buyBox']['products'][0]['upc']
-            self.data[prod_id]['upc'] = upc
-            return upc
+            data = datastore['item']['product']['buyBox']['products'][0]
+            walmart_names = ['upc','brandName','productName', 'model', 'reviewsCount', 'averageRating']
+            my_names = ['upc','manufacturer','product','model','reviews','rating']
+            for i in range(len(walmart_names)):
+                if walmart_names[i] in data.keys():
+                    self.data[prod_id][my_names[i]] = data[walmart_names[i]]
 
         except KeyError:
             pass
 
+        return self.data[prod_id]
+
+
+    def lookup_id(self, upc):
+        prod_ids = self.add_ids(1,query=upc)
+        if prod_ids != []:
+            self.data[prod_ids[0]]['upc'] = upc
+            return prod_ids[0]
         return None
-
-
 
 
 
 if __name__ == '__main__':
 
-    scrap = AmazonScraper('db/')
-    print(scrap.lookup_upc('B006V6YAPI'))
-    #print(am_scrap.lookup_upc('303303799'))
+    scrap = WalmartScraper('db/')
+    #print(scrap.lookup_upc('B006V6YAPI'))
+    print(scrap.lookup_upc('303303799'))
     #print(scrap)
     #print(scrap.lookup_id('889526116651'))
     #print(scrap.data)
