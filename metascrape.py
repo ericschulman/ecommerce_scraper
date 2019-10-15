@@ -8,17 +8,17 @@ from scraper import *
 
 class MetaScraper():
 
-    def __init__(self, scrapers):
+    def __init__(self, scrapers,size,query):
         self.scrapers = scrapers
+        self.query = query
+        self.size = size
 
     def run_scrape(self):
 
         for i, scraper in enumerate(self.scrapers):
-
             #get a list of product ids from each website
-            prod_ids = scraper.add_ids(5)
+            prod_ids = scraper.add_ids(self.size ,query=self.query)
             #print(prod_ids)
-
             #figure our their upc code
             upcs = []
             for prod_id in prod_ids:
@@ -47,7 +47,7 @@ class MetaScraper():
 
 if __name__ == '__main__':
     db = 'db/'
-    scrapers = [WalmartScraper(db), AmazonScraper(db)]
-    ms  = MetaScraper(scrapers)
+    scrapers = [AmazonScraper(db),WalmartScraper(db)]
+    ms  = MetaScraper(scrapers,50,'drills')
     ms.run_scrape()
     ms.write_data()
