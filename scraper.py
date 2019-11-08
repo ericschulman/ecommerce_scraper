@@ -94,7 +94,7 @@ class GenericScraper:
             for sub_key in self.data[key].keys():
                 if self.data[key][sub_key] is not None:
                     query_pt1 = query_pt1 + "," + sub_key
-                    query_pt2 = query_pt2 + ",'%s'"%(self.data[key][sub_key]).replace('\\','')
+                    query_pt2 = query_pt2 + ",'%s'"%(str(self.data[key][sub_key])).replace('\\','')
             query_pt1 = query_pt1 + ")"
             query_pt2 = query_pt2 + ")"
             try:
