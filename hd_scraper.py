@@ -8,6 +8,7 @@ import os
 import sqlite3
 import datetime
 import time
+import gen_scraper
 
 class GenericScraper:
 

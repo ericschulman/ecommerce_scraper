@@ -1,6 +1,9 @@
 CREATE TABLE "prices" (
+	"platform" TEXT,
 	"website"	TEXT,
 	"date"	INTEGER,
+	"rank" INTEGER,
+	"query" TEXT,
 	"prod_id"	TEXT,
 	"upc"	TEXT,
 	"product"	TEXT,
@@ -11,10 +14,14 @@ CREATE TABLE "prices" (
 	"in_stock"	INTEGER,
 	"max_qty"	INTEGER,
 	"seller"	TEXT,
-	"listings"	INTEGER,
 	"arrives"	TEXT,
+	"shipping" TEXT,
+	"shipping_price" NUMERIC,
 	"weight"	INTEGER,
 	"reviews"	INTEGER,
 	"rating"	NUMERIC,
-	"rank"	INTEGER
+	"quantity1"	INTEGER,
+	"quantity2" INTEGER,
+	"quantity3" INTEGER,
+	"ads" INTEGER 
 )

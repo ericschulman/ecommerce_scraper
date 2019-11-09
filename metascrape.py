@@ -1,10 +1,7 @@
-import urllib
-import lxml
-from lxml import etree
-from lxml import html
-import pandas as pd
-import json
-from scraper import *
+from gen_scraper import *
+from wal_scraper import *
+from am_scraper import *
+
 
 class MetaScraper():
 
@@ -20,23 +17,22 @@ class MetaScraper():
             prod_ids = scraper.add_ids(self.size ,query=self.query)
             #print(prod_ids)
             #figure our their upc code
-            upcs = []
+            products = []
             for prod_id in prod_ids:
-                upc_lookup = scraper.lookup_upc(prod_id)
-                if upc_lookup is not None:
-                    upcs.append(upc_lookup)
-
-            #print(upcs,scraper.base_url)
-
+                product_lookup = scraper.lookup_product(prod_id)
+                if product_lookup is not None:
+                    products.append(product_lookup)
+                    
             #search for the code on the other websites
             other_scrapers = scrapers[:i] + scrapers[i+1:]
             #print(other_scrapers)
             for j, other_scraper in enumerate(other_scrapers):
 
                 other_scraper_ids = []
-                for upc in upcs:
-                    if upc is not None:
-                        other_scraper.lookup_id(upc)
+                for product in products:
+                    if product is not None:
+                        print(product, other_scraper.platform, scraper.platform)
+                        other_scraper.lookup_id(product)
 
 
     def write_data(self):
@@ -48,6 +44,6 @@ class MetaScraper():
 if __name__ == '__main__':
     db = 'db/'
     scrapers = [AmazonScraper(db),WalmartScraper(db)]
-    ms  = MetaScraper(scrapers,50,'drills')
+    ms  = MetaScraper(scrapers,3,'drills')
     ms.run_scrape()
     ms.write_data()
