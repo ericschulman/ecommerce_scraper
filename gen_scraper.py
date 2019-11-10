@@ -28,12 +28,13 @@ class GenericScraper:
     hdrs = [hdr1,hdr2]
 
 
-    def __init__(self, db):
+    def __init__(self, db, main_query='drills'):
         self.counter = 0
         self.base_url = 'https://'
         self.db = db
         self.data = {}
         self.platform = ''
+        self.main_query = main_query
         
         #create the database if it is not there
         if not os.path.isfile(db+'scrape.db') :
@@ -63,7 +64,15 @@ class GenericScraper:
         return empty
 
 
-    def search_url(self, query, page,  sort=''):
+    def format_query(self, query):
+        formated_string =query[0].replace(' ','%20') if query[0] is not None else ''
+        final_query = formated_string
+        for s in query[1:]:
+            formated_string  = '%20' + s.replace(' ','%20') if s is not None else ''
+            final_query = final_query + formated_string
+        return final_query
+
+    def search_url(self, query, page, sort=''):
         return ''
 
     def prod_url(self, prod_id):
@@ -74,10 +83,12 @@ class GenericScraper:
             self.create_id(prod_id)
         return self.data[prod_id]['manufacturer'], self.data[prod_id]['model']
 
+    def set_query(self,main_query):
+        self.main_query = main_query
 
     def lookup_id(self, product):
         manuf, model = product
-        prod_ids = self.add_ids(1,query='%s %s'%(manuf,model),ads=False,sort='')
+        prod_ids = self.add_ids(3, query=(manuf,model,self.main_query), lookup =True )
         if prod_ids != []:
             self.data[prod_ids[0]]['manufacturer'] = manuf
             self.data[prod_ids[0]]['model'] = model
@@ -91,7 +102,7 @@ class GenericScraper:
         return self.data[prod_id]['upc']
 
     def lookup_id_upc(self, upc):
-        prod_ids = self.add_ids(1,query=upc,ads=False)
+        prod_ids = self.add_ids(1,query=(upc), lookup =True )
         if prod_ids != []:
             self.data[prod_ids[0]]['upc'] = upc
             return prod_ids[0]
@@ -145,5 +156,5 @@ class GenericScraper:
         self.get_data(prod_id)
 
 
-    def add_ids(self, num_ids, ads=True, sort ='', query='drills'):
+    def add_ids(self, num_ids, lookup=True, query=None):
         return []

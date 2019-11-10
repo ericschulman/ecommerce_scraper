@@ -14,7 +14,8 @@ class MetaScraper():
 
         for i, scraper in enumerate(self.scrapers):
             #get a list of product ids from each website
-            prod_ids = scraper.add_ids(self.size ,query=self.query)
+            scraper.set_query(self.query)
+            prod_ids = scraper.add_ids(self.size )
             #print(prod_ids)
             #figure our their upc code
             products = []
@@ -25,14 +26,14 @@ class MetaScraper():
                     
             #search for the code on the other websites
             other_scrapers = scrapers[:i] + scrapers[i+1:]
-            #print(other_scrapers)
             for j, other_scraper in enumerate(other_scrapers):
 
                 other_scraper_ids = []
                 for product in products:
                     if product is not None:
                         print(product, other_scraper.platform, scraper.platform)
-                        other_scraper.lookup_id(product)
+                        print(other_scraper.lookup_id(product))
+                        print('<----->')
 
 
     def write_data(self):
