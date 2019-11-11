@@ -46,6 +46,7 @@ class GenericScraper:
             con.commit()
 
     def get_page(self, url):
+        print(url)
         for i in range(5):
             try:    
                 hdr = GenericScraper.hdrs[self.counter%2]
@@ -57,7 +58,7 @@ class GenericScraper:
             except urllib.error.HTTPError as err:
                 print(err)
                 if (err.code ==429):
-                    print(err.headers)
+                    print(err.headers, url)
                     time.sleep(20)
 
         empty = b'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><script src="script.js"></script></head></html>'
@@ -89,6 +90,7 @@ class GenericScraper:
     def lookup_id(self, product):
         manuf, model = product
         prod_ids = self.add_ids(3, query=(manuf,model,self.main_query), lookup =True )
+        print('yo2', prod_ids)
         if prod_ids != []:
             self.data[prod_ids[0]]['manufacturer'] = manuf
             self.data[prod_ids[0]]['model'] = model
@@ -127,7 +129,7 @@ class GenericScraper:
             for sub_key in self.data[key].keys():
                 if self.data[key][sub_key] is not None:
                     query_pt1 = query_pt1 + "," + sub_key
-                    query_pt2 = query_pt2 + ",'%s'"%(str(self.data[key][sub_key])).replace('\\','')
+                    query_pt2 = query_pt2 + ",'%s'"%(str(self.data[key][sub_key])).replace('\\','').replace("'","")
             query_pt1 = query_pt1 + ")"
             query_pt2 = query_pt2 + ")"
             try:
@@ -147,7 +149,7 @@ class GenericScraper:
         date = datetime.datetime.now()
         date = self.to_epoch_time(date)
         self.data[prod_id] = {'platform':self.platform, 'website':self.base_url, 
-        'date':date, 'rank':None , 'upc':None, 'query':None,'product':None,
+        'date':date, 'rank':None ,'page':None ,  'upc':None, 'query':None,'product':None,
         'manufacturer':None, 'model':None, 'price':None, 'list_price':None, 'in_stock':None, 
         'max_qty':None, 'seller':None, 'arrives':None,
         'shipping':None, 'shipping_price':None,

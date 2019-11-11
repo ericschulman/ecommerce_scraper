@@ -27,14 +27,12 @@ class AmazonScraper(GenericScraper):
         return  self.base_url + 'dp/'+prod_id
 
 
-    def add_ids(self, num_ids, lookup = False, query= None):
-        asin_list = []
-        search_rank = 1
-        page = 1
+    def add_ids(self, num_ids, lookup = False, query= None, retry=3, search_rank=1, page=1, asin_list=[]):
+        
         if query is None:
             query = [self.main_query]
 
-        max_page = 1 if lookup else 10
+        max_page = 2 if lookup else 10
         while page < max_page and search_rank <= num_ids:
 
             url = self.search_url(query, page, sort='') if lookup else self.search_url(query,page)
@@ -44,7 +42,10 @@ class AmazonScraper(GenericScraper):
             search_box = tree.xpath("//*[@class='s-result-list s-search-results sg-row']") 
             
             if len(search_box) <= 0: #no results
-                return asin_list
+                if retry >0:
+                    return self.add_ids(num_ids, lookup = lookup, query= query,retry=retry-1,search_rank=search_rank, page=page, asin_list=asin_list,found_product=found_product)
+                else:
+                    return asin_list
 
             search_results = search_box[0]
 
@@ -56,11 +57,15 @@ class AmazonScraper(GenericScraper):
                     
                     found_product = not lookup
 
-                    #asin = search_results[index].attrib['data-asin']
-                    result_text = str(etree.tostring(search_results[index])) #more reliable way to get ASIN
-                    result_text = result_text[result_text.find('dp/')+3:]
-                    result_text = result_text[:result_text.find('/')]
-                    asin = result_text
+                    asin = search_results[index].attrib['data-asin']
+
+                    if len(asin) != 10:
+
+                        result_text = str(etree.tostring(search_results[index])) #more reliable way to get ASIN
+                        result_text = result_text[result_text.find('dp/')+3:]
+                        result_text = result_text[:result_text.find('/')]
+                        asin = result_text
+
                     if len(asin) != 10: #ASINs are 10 charcters?
                         index = index+1
                         continue
@@ -69,6 +74,7 @@ class AmazonScraper(GenericScraper):
                     
                     #if we are looking up, see if it's the right product
                     if not is_ad and not found_product:
+                        print('yo1', asin,query,search_rank)
                         in_name = False
                         title = str(etree.tostring(imgs[index]))
 
@@ -76,35 +82,30 @@ class AmazonScraper(GenericScraper):
                         if len(query) >1:
                             manuf,model= query[0],query[1]
 
-                        in_name = model is not None and (title.find(model) >= 0)
+                        in_name = model is not None and title.find(model) >= 0 and title.find(manuf) >= 0
                         if in_name:
                             #how is the one relevant result not here???
                             found_product = True #skip and increment search rank
                         if not in_name:
                             search_rank = search_rank +1
                         
-                        
                     #general case when not looking up a product
                     if found_product:
                         if asin not in self.data.keys():
                             self.create_id(asin)
-                            self.data[asin]['query'] = self.format_query(query) 
-                            self.data[asin]['rank'] = search_rank
-                            self.data[asin]['ads'] = 0
+                            self.data[asin]['query'] = url
+                            self.data[asin]['rank'] = 0 if (lookup or is_ad) else search_rank
+                            self.data[asin]['ads'] = 1 if is_ad else 0
+                            self.data[asin]['page'] = page
 
-                        search_rank = search_rank +1
+                        incr = 0 if is_ad else 1
+                        search_rank = search_rank + incr
                         asin_list.append(asin)
-                        
-                        
-                    #general case when an add
-                    if is_ad and found_product:
-                        self.data[asin]['rank'] = 0
-                        self.data[asin]['ads'] = 1
 
                 index = index +1
                 
             page = page +1
-
+        print(asin_list,'yo3')
         return asin_list
 
 
@@ -120,11 +121,38 @@ class AmazonScraper(GenericScraper):
         
         
 
-    def get_data(self, asin):
+    def get_data(self, asin, retry=3):
 
         url =  self.prod_url(asin)
         rawtext = self.get_page(url)
         tree = html.fromstring(rawtext)
+
+        ####### most important info first
+
+
+        #manufactuer
+        manuf = tree.xpath("//*[@id='bylineInfo']")
+        if manuf != []:
+            self.data[asin]['manufacturer'] = manuf[0].text
+        #else:
+        #    if retry > 0:
+        #        self.get_data(asin, retry=retry-1)
+        #    if retry ==0:
+        #        print('no manuf %s'%asin)
+        
+        #model number
+        table1 =  self.amazon_table(tree,'productDetails_techSpec_section_1')
+        if  table1 is not None and ' Part Number' in list(table1.index):
+            model = table1.loc[' Part Number'][1]
+            self.data[asin]['model'] = model[1:]
+            
+        elif table1 is not None and ' Item model number' in list(table1.index):
+            model = table1.loc[' Item model number'][1]
+            self.data[asin]['model'] = model[1:]
+
+
+        ######### try again
+
 
         #'product':None,
         product = tree.xpath("//*[@id='productTitle']")
@@ -200,22 +228,7 @@ class AmazonScraper(GenericScraper):
             reviews = reviews.replace(',','')
             self.data[asin]['reviews'] = int(reviews)
         
-        #manufactuer
-        manuf = tree.xpath("//*[@id='bylineInfo']")
-        if manuf != []:
-            self.data[asin]['manufacturer'] = manuf[0].text
-        else:
-            print('no manuf %s'%asin)
         
-        #model number
-        table1 =  self.amazon_table(tree,'productDetails_techSpec_section_1')
-        if  table1 is not None and ' Part Number' in list(table1.index):
-            model = table1.loc[' Part Number'][1]
-            self.data[asin]['model'] = model[1:]
-            
-        elif table1 is not None and ' Item model number' in list(table1.index):
-            model = table1.loc[' Item model number'][1]
-            self.data[asin]['model'] = model[1:]
         
         #'weight'
         table2 = self.amazon_table(tree,'productDetails_detailBullets_sections1')
@@ -277,10 +290,10 @@ class AmazonScraper(GenericScraper):
 if __name__ == '__main__':
 
     scrap = AmazonScraper('db/')
-    print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
-    print(scrap.lookup_id(('BLACK+DECKER','BCD702C2BWM')))
+    #print(scrap.lookup_id(('BLACK+DECKER','LDX220C')))
+    #print(scrap.lookup_id(('BLACK+DECKER','BCD702C2BWM')))
     print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
-    #print(scrap.add_ids(3))
+    #print( len(scrap.add_ids(50) ) )
     #print(len(scrap.data))
     #scrap.write_data()
     #scrap.write_data()

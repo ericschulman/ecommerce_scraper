@@ -45,6 +45,6 @@ class MetaScraper():
 if __name__ == '__main__':
     db = 'db/'
     scrapers = [AmazonScraper(db),WalmartScraper(db)]
-    ms  = MetaScraper(scrapers,3,'drills')
+    ms  = MetaScraper(scrapers,10,'drills')
     ms.run_scrape()
     ms.write_data()

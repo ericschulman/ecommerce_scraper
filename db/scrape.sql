@@ -3,6 +3,7 @@ CREATE TABLE "prices" (
 	"website"	TEXT,
 	"date"	INTEGER,
 	"rank" INTEGER,
+	"page" INTEGER,
 	"query" TEXT,
 	"prod_id"	TEXT,
 	"upc"	TEXT,
