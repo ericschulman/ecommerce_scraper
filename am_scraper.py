@@ -84,7 +84,7 @@ class AmazonScraper(GenericScraper):
                         if len(query) >1:
                             manuf,model= query[0],query[1]
 
-                        in_name = model is not None and title.find(model) >= 0 and title.find(manuf) >= 0
+                        in_name = model is not None and title.find(model) >= 0 # and title.find(manuf) >= 0
                         if in_name:
                             #how is the one relevant result not here???
                             found_product = True #skip and increment search rank

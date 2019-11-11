@@ -48,6 +48,7 @@ class WalmartScraper(GenericScraper):
             index = 0
 
             while index < len(items) and  search_rank <= num_ids:
+                #print(items[index])
                 prod_id = items[index]['usItemId']
                 found_product = not lookup
                 if not found_product:
@@ -59,7 +60,7 @@ class WalmartScraper(GenericScraper):
                             manuf,model= query[0],query[1]
                             
                         title = items[index]['title']
-                        in_name = model is not None and title.find(model) >= 0 and title.find(manuf) >= 0
+                        in_name = model is not None and title.find(model) >= 0  # and title.find(manuf) >= 0
 
                     if in_name:
                         found_product = True
@@ -163,6 +164,5 @@ class WalmartScraper(GenericScraper):
 if __name__ == '__main__':
     scrap = WalmartScraper('db/')
     #print( len(scrap.add_ids(50) ))
-    scrap.write_data()
     print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
     #print(scrap.lookup_id(('DEWALT','DCD777C2')))
