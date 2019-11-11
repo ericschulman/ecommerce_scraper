@@ -24,7 +24,7 @@ class WalmartScraper(GenericScraper):
         return url
 
 
-    def add_ids(self, num_ids, lookup=False, query=None,page=1):
+    def add_ids(self, num_ids, lookup=False, query=None, page=1, prod_id_list=[]):
         if query is None:
             query = [self.main_query]
        

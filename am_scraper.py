@@ -27,23 +27,26 @@ class AmazonScraper(GenericScraper):
         return  self.base_url + 'dp/'+prod_id
 
 
-    def add_ids(self, num_ids, lookup = False, query= None, retry=3, search_rank=1, page=1, asin_list=[]):
-        
+    def add_ids(self, num_ids, lookup = False, query= None, retry0=3, search_rank0=1, page0=1, asin_list0=[]):
+        asin_list = asin_list0[:]
+        page = page0
+        search_rank = search_rank0
+        retry = retry0
+
         if query is None:
             query = [self.main_query]
 
         max_page = 2 if lookup else 10
         while page < max_page and search_rank <= num_ids:
-
             url = self.search_url(query, page, sort='') if lookup else self.search_url(query,page)
-        
+            
             rawtext = self.get_page(url)
             tree = html.fromstring(rawtext)
             search_box = tree.xpath("//*[@class='s-result-list s-search-results sg-row']") 
             
             if len(search_box) <= 0: #no results
                 if retry >0:
-                    return self.add_ids(num_ids, lookup = lookup, query= query,retry=retry-1,search_rank=search_rank, page=page, asin_list=asin_list,found_product=found_product)
+                    return self.add_ids(num_ids, lookup = lookup, query= query,retry0=retry-1,search_rank0=search_rank, page0=page, asin_list0=asin_list)
                 else:
                     return asin_list
 
@@ -71,10 +74,9 @@ class AmazonScraper(GenericScraper):
                         continue
 
                     is_ad =  int('AdHolder' in search_results[index].attrib['class'])
-                    
+
                     #if we are looking up, see if it's the right product
                     if not is_ad and not found_product:
-                        print('yo1', asin,query,search_rank)
                         in_name = False
                         title = str(etree.tostring(imgs[index]))
 
@@ -102,10 +104,10 @@ class AmazonScraper(GenericScraper):
                         search_rank = search_rank + incr
                         asin_list.append(asin)
 
+
                 index = index +1
                 
             page = page +1
-        print(asin_list,'yo3')
         return asin_list
 
 
@@ -292,8 +294,10 @@ if __name__ == '__main__':
     scrap = AmazonScraper('db/')
     #print(scrap.lookup_id(('BLACK+DECKER','LDX220C')))
     #print(scrap.lookup_id(('BLACK+DECKER','BCD702C2BWM')))
-    print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
-    #print( len(scrap.add_ids(50) ) )
+    #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
+    #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
+    #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
+    print( len(scrap.add_ids(10) ) )
     #print(len(scrap.data))
     #scrap.write_data()
     #scrap.write_data()
