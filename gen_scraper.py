@@ -89,7 +89,7 @@ class GenericScraper:
 
     def lookup_id(self, product):
         manuf, model = product
-        prod_ids = self.add_ids(3, query=(manuf,model,self.main_query), lookup = True)
+        prod_ids = self.add_ids(4, query=(manuf,model,self.main_query), lookup = True)
         if prod_ids != []:
             self.data[prod_ids[0]]['manufacturer'] = manuf
             self.data[prod_ids[0]]['model'] = model
