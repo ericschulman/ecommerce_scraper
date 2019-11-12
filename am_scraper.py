@@ -120,7 +120,29 @@ class AmazonScraper(GenericScraper):
         table = table.applymap(lambda s: s.replace('\\n','').replace('\\t','').replace('  ', '')) #clean things up
         table = table.set_index(0)
         return table
-        
+    
+
+    def get_num_sellers(self, tree):
+        listings = self.search_xpath(tree,"New & Used")
+        if listings !=[]:
+            listings = str(etree.tostring(listings[0]))
+            ind1, ind2 = listings.find('('),listings.find(')')
+            return int(listings[ind1+1:ind2])
+        return None
+
+    def get_price(self,tree):
+        price = tree.xpath("//*[@id='base-product-price']")
+        if price != []:
+           return float(price[0].attrib['data-base-product-price'][1:])
+        if price == []:
+            price = tree.xpath("//*[@id='priceblock_ourprice']")
+            if price != []:
+                return float(price[0].text[1:])
+        if price == []:    
+            price = tree.xpath("//*[@id='priceblock_saleprice']")
+            if price != []:
+                return float(price[0].text[1:])
+        return None
         
 
     def get_data(self, asin, retry=3):
@@ -136,11 +158,6 @@ class AmazonScraper(GenericScraper):
         manuf = tree.xpath("//*[@id='bylineInfo']")
         if manuf != []:
             self.data[asin]['manufacturer'] = manuf[0].text
-        #else:
-        #    if retry > 0:
-        #        self.get_data(asin, retry=retry-1)
-        #    if retry ==0:
-        #        print('no manuf %s'%asin)
         
         #model number
         table1 =  self.amazon_table(tree,'productDetails_techSpec_section_1')
@@ -151,9 +168,6 @@ class AmazonScraper(GenericScraper):
         elif table1 is not None and ' Item model number' in list(table1.index):
             model = table1.loc[' Item model number'][1]
             self.data[asin]['model'] = model[1:]
-
-
-        ######### try again
 
 
         #'product':None,
@@ -169,17 +183,7 @@ class AmazonScraper(GenericScraper):
             self.data[asin]['list_price'] = float(list_price[0].text[2:])
             
         #price
-        price = tree.xpath("//*[@id='base-product-price']")
-        if price != []:
-            self.data[asin]['price'] = float(price[0].attrib['data-base-product-price'][1:])
-        if price == []:
-            price = tree.xpath("//*[@id='priceblock_ourprice']")
-            if price != []:
-                self.data[asin]['price'] = float(price[0].text[1:])
-        if price == []:    
-            price = tree.xpath("//*[@id='priceblock_saleprice']")
-            if price != []:
-                self.data[asin]['price'] = float(price[0].text[1:])
+        self.data[asin]['price'] = self.get_price(tree)
         
         #'in_stock' 
         stock = tree.xpath("//*[@id='availability']")
@@ -193,11 +197,7 @@ class AmazonScraper(GenericScraper):
             self.data[asin]['seller'] = seller[0][1][0].text
         
         #'listings'
-        listings = self.search_xpath(tree,'mbc-upd-olp-link')
-        if listings !=[]:
-            listings = str(etree.tostring(listings[0]))
-            ind1, ind2 = listings.find('('),listings.find(')')
-            self.data[asin]['quantity1']= int(listings[ind1+1:ind2])
+        self.data[asin]['quantity1']= self.get_num_sellers(tree)
 
         #rank in page
 
@@ -229,15 +229,20 @@ class AmazonScraper(GenericScraper):
             reviews = reviews[:reviews.find(' ')]
             reviews = reviews.replace(',','')
             self.data[asin]['reviews'] = int(reviews)
-        
-        
-        
+                
         #'weight'
         table2 = self.amazon_table(tree,'productDetails_detailBullets_sections1')
         if table2 is not None and ' Shipping Weight' in list(table2.index):
             weight = table2.loc[' Shipping Weight'][1][1:]
             weight = weight[:weight.find(' ')]
             self.data[asin]['weight'] = float(weight)
+
+        if table2 is not None and ' Best Sellers Rank' in list(table2.index):
+            rank = table2.loc[' Best Sellers Rank'].loc[1]
+            rank = rank[rank.find('#'):]
+            rank = rank[1:rank.find(' ')]
+            rank = int(rank.replace(',',''))
+            self.data[asin]['quantity2'] = rank
             
         #'max_qty'
         dropdowns = tree.xpath("//*[@class='a-dropdown-container']")

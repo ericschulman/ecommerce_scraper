@@ -24,7 +24,7 @@ class WalmartScraper(GenericScraper):
         return url
 
 
-    def add_ids(self, num_ids, lookup=False, query=None, page=1, prod_id_list=[]):
+    def add_ids(self, num_ids, lookup=False, query=None, page=1):
         if query is None:
             query = [self.main_query]
        
@@ -77,7 +77,7 @@ class WalmartScraper(GenericScraper):
                     
                         if 'quantity' in items[index].keys():
                             self.data[prod_id]['quantity1'] = items[index]['quantity']
-                #print(prod_id,search_rank,index)
+
                 search_rank = search_rank +1
                 index = index +1
             page = page+1
