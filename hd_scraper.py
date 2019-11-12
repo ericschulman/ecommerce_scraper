@@ -1,6 +1,5 @@
 from gen_scraper import *
 
-
 class HomeDepotScraper(GenericScraper):
 
     def __init__(self, db, main_query='drills'):
@@ -24,6 +23,29 @@ class HomeDepotScraper(GenericScraper):
         url =  self.base_url + 'p/' + prod_id
         return url
 
+    def get_data_results(self, item, prod_id):
+        
+        manuf = self.search_xpath(item,'pod-plp__brand-name')
+        if len(manuf) > 0:
+            self.data[prod_id]['manufacturer'] = str(manuf[0].text)
+
+        model = self.search_xpath(item,'plp__model')
+        if len(model) > 0:
+            model = str(model[0].text)
+            model = model[model.find('Model#') +8:]
+            model = model[:model.find('\n')]
+            self.data[prod_id]['model'] = model
+
+        main_info = self.search_xpath(item,'productlist plp-pod__compare')
+        if len(main_info)>0:
+            main_info = main_info[0][0][0]
+            self.data[prod_id]['product'] = main_info.attrib['data-title']
+            if 'data-was-price' in main_info.attrib.keys():
+                self.data[prod_id]['list_price'] = float(main_info.attrib['data-was-price'][1:])
+                self.data[prod_id]['price'] = float(main_info.attrib['data-price'][1:])
+            else:
+                self.data['price'] = float(main_info.attrib['data-price'][1:])
+
 
     def add_ids(self, num_ids, lookup=False, query=None, page=1):
         if query is None:
@@ -44,15 +66,13 @@ class HomeDepotScraper(GenericScraper):
                 return []
 
             index = 0
-
             while index < len(items) and  search_rank <= num_ids:
 
                 prod_id = items[index].attrib['data-productid']
                 found_product = not lookup
                 
                 if not found_product:
-                    in_name = True
-                    #get the product name
+                    in_name = True #get the product name
                     
                     manuf,model = query[0], query[0]
                     if len(query) >1:
@@ -75,9 +95,9 @@ class HomeDepotScraper(GenericScraper):
                         self.data[prod_id]['ads'] = 0
                         self.data[prod_id]['page'] = page
 
-
                         #seems like all data is on search results
-                        #self.data[prod_id]['price']
+                        print(index, items[index],prod_id)
+                        self.get_data_results(items[index],prod_id)
                     
                 search_rank = search_rank +1
                 index = index +1
@@ -90,4 +110,5 @@ class HomeDepotScraper(GenericScraper):
 if __name__ == '__main__':
     scrap = HomeDepotScraper('db/')
     prod_id1 = '207051121'
-    print(scrap.add_ids(3))
+    print(scrap.add_ids(10))
+    scrap.write_data()
