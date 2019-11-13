@@ -303,6 +303,7 @@ if __name__ == '__main__':
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
     print( len(scrap.add_ids(10) ) )
+    scrap.end_scrape()
     #print(len(scrap.data))
     #scrap.write_data()
     #scrap.write_data()

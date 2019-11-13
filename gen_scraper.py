@@ -7,34 +7,31 @@ import json
 import os
 import sqlite3
 import datetime
+import pytest
 import time
+import json
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
+
 
 class GenericScraper:
 
-    hdr1 = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
-
-    hdr2 = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-        'Accept-Encoding': 'none',
-        'Accept-Language': 'en-US,en;q=0.8',
-        'Connection': 'keep-alive'}
-
-    hdrs = [hdr1,hdr2]
-
-
-    def __init__(self, db, main_query='drills'):
+    def __init__(self, db, main_query='drills',location = '', headless=False):
         self.counter = 0
         self.base_url = 'https://'
         self.db = db
         self.data = {}
         self.platform = ''
         self.main_query = main_query
+        self.location = location
+        self.headless = headless
+        self.drivers = []
+        for i in range(2):
+            self.drivers.append(webdriver.Firefox())
         
         #create the database if it is not there
         if not os.path.isfile(db+'scrape.db') :
@@ -45,21 +42,23 @@ class GenericScraper:
             cur.executescript(sql)
             con.commit()
 
+    def end_scrape():
+        for driver in self.drivers:
+            driver.quit()
+
     def get_page(self, url):
         print(url)
         for i in range(5):
             try:    
-                hdr = GenericScraper.hdrs[self.counter%2]
-                page = urllib.request.Request(url, headers=hdr)
-                response = urllib.request.urlopen(page)
-                rawtext = response.read()
+                driver = self.drivers[self.counter%2]
+                driver.get(url)
+                rawtext = driver.page_source
+                self.counter = self.counter +1
                 return rawtext
 
-            except urllib.error.HTTPError as err:
-                print(err)
-                if (err.code ==429):
-                    print(err.headers, url)
-                    time.sleep(20)
+            except Exception as error:
+                print(error)
+                pass
 
         empty = b'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><script src="script.js"></script></head></html>'
         return empty

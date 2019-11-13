@@ -19,6 +19,8 @@ class TestTest1():
   
   def test_test1(self):
     self.driver.get("https://www.amazon.com/s?k=drills&s=salesrank")
+    self.driver.get("https://www.amazon.com/s?k=saws&s=salesrank")
+
     #self.driver.set_window_size(550, 692)
     #self.driver.find_element(By.ID, "glow-ingress-line1").click()
     #self.driver.find_element(By.ID, "glow-ingress-line1").click()
@@ -26,7 +28,7 @@ class TestTest1():
     #self.driver.find_element(By.ID, "GLUXZipUpdateInput").send_keys("78722")
     #self.driver.find_element(By.CSS_SELECTOR, "#GLUXZipUpdate .a-button-input").click()
     #self.driver.find_element(By.ID, "a-autoid-5-announce").click()
-    print(self.driver.page_source)
+    #print(self.driver.page_source)
 
 
 if __name__ == '__main__':
