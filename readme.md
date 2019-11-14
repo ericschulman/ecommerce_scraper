@@ -1,30 +1,27 @@
-https://stackoverflow.com/questions/45339773/amazon-product-search-api-python-upc
-https://stackoverflow.com/questions/6103772/using-amazons-api-to-find-a-products-upc-python
+#installing selenium with anacondas
+conda install selenium
+conda install -c conda-forge geckodriver
 
+#generic
+* changing the location of the query
+* https://stackoverflow.com/questions/41235608/when-scraping-amazon-prices-based-on-locations-cookies-randomly-fail-to-retain
+* https://ehikioya.com/hiding-spoofing-browser-geolocation/
 
-https://developer.walmart.com/#/home
-https://developer.jet.com/
+#walmart
+* walmart get pick up options
 
+#home depot
+* change location using storeid?
+* home depot get pickup options
+* home depot - weight and other quantity information
 
-https://www.upcitemdb.com/
-
-
-### UPC database
-http://upcdatabase.org/
-
-### producst to track
-https://www.upcitemdb.com/upc/
-45 reviews - 4/29
-319 reviews - 6/17
-
-
-
-
-## canning jars
-https://www.upcitemdb.com/upc/76440109849
-https://www.walmart.com/ip/Anchor-Hocking-Half-Pint-Glass-Canning-Jar-Set-12pk/43184792
-
-
+# amazon
+* change location with throw away accounts?
+* amazon find price when below suggested retail price
+* amazon shipping time/arrives correctly
+* amazon limited quantity number
+* seems like the incorrect # is being scraped
+* selenium broke some stuff
 
 ## companies:
 https://www.emarketer.com/content/digital-investments-pay-off-for-walmart-in-ecommerce-race
@@ -32,39 +29,4 @@ https://techcrunch.com/2018/07/13/amazons-share-of-the-us-e-commerce-market-is-n
 https://www.emarketer.com/Chart/Top-10-US-Companies-Ranked-by-Retail-Ecommerce-Sales-Share-2018-of-US-retail-ecommerce-sales/220521
 https://www.statista.com/statistics/276846/reach-of-top-online-retail-categories-worldwide/
 
-## Definite:
-amazon, ebay, walmart, jet, 
-Overstock.com
-zulily, 
-hsn
 
-## Nope:
-wayfair, Home depot, best buy,  Macy's, costco, 
-
-
-## shoe specific
-eastbay,
-target,
-footlocker
-shoes.com
-dsw.com, zappos
-famous footwear
-
-
-
-
-## data:
-price upc asin name brand
-shipping,
-reported full price,
-description
-max purchase qty
-reviews by stars
-
-
-
-## Shoe specific?
-sizes available
-colors available
-category
-men/womans

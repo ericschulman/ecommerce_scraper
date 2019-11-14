@@ -16,22 +16,22 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-
+from selenium.webdriver.firefox.options import Options
 
 class GenericScraper:
 
-    def __init__(self, db, main_query='drills',location = '', headless=False):
+    def __init__(self, db, url='', platform='', query='drills',location = '78722', headless=False):
         self.counter = 0
-        self.base_url = 'https://'
+        self.base_url = url
         self.db = db
         self.data = {}
-        self.platform = ''
-        self.main_query = main_query
+        self.platform = platform
+        self.query = query
         self.location = location
         self.headless = headless
         self.drivers = []
         for i in range(2):
-            self.drivers.append(webdriver.Firefox())
+            self.add_driver()
         
         #create the database if it is not there
         if not os.path.isfile(db+'scrape.db') :
@@ -42,37 +42,40 @@ class GenericScraper:
             cur.executescript(sql)
             con.commit()
 
-    def end_scrape():
+    def end_scrape(self):
         for driver in self.drivers:
             driver.quit()
 
+    def set_location(self,driver):
+        pass
+
+    def add_driver(self):
+        opts = Options()
+        if self.headless:
+           opts.set_headless()
+        driver = webdriver.Firefox(options=opts)
+        self.set_location(driver)
+        self.drivers.append(driver)
+
+
     def get_page(self, url):
-        print(url)
-        for i in range(5):
-            try:    
-                driver = self.drivers[self.counter%2]
-                driver.get(url)
-                rawtext = driver.page_source
-                self.counter = self.counter +1
-                return rawtext
+        self.counter = self.counter +1
+        driver = self.drivers[self.counter%2]
+        driver.get(url)
+        rawtext = driver.page_source
+        return rawtext
 
-            except Exception as error:
-                print(error)
-                pass
+    def format_query(self, keywords):
+        assert type(keywords) == list
 
-        empty = b'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><script src="script.js"></script></head></html>'
-        return empty
-
-
-    def format_query(self, query):
-        formated_string =query[0].replace(' ','%20') if query[0] is not None else ''
+        formated_string =keywords[0].replace(' ','%20') if keywords[0] is not None else ''
         final_query = formated_string
-        for s in query[1:]:
+        for s in keywords[1:]:
             formated_string  = '%20' + s.replace(' ','%20') if s is not None else ''
             final_query = final_query + formated_string
         return final_query
 
-    def search_url(self, query, page, sort=''):
+    def search_url(self, keywords, page, sort=''):
         return ''
 
     def prod_url(self, prod_id):
@@ -83,12 +86,12 @@ class GenericScraper:
             self.create_id(prod_id)
         return self.data[prod_id]['manufacturer'], self.data[prod_id]['model']
 
-    def set_query(self,main_query):
-        self.main_query = main_query
+    def set_query(self, query):
+        self.query = query
 
     def lookup_id(self, product):
         manuf, model = product
-        prod_ids = self.add_ids(4, query=(manuf,model,self.main_query), lookup = True)
+        prod_ids = self.add_ids(4, keywords=[manuf,model,self.query], lookup = True)
         if prod_ids != []:
             self.data[prod_ids[0]]['manufacturer'] = manuf
             self.data[prod_ids[0]]['model'] = model
@@ -102,7 +105,7 @@ class GenericScraper:
         return self.data[prod_id]['upc']
 
     def lookup_id_upc(self, upc):
-        prod_ids = self.add_ids(1,query=(upc), lookup =True )
+        prod_ids = self.add_ids(1,keywords=[upc], lookup =True )
         if prod_ids != []:
             self.data[prod_ids[0]]['upc'] = upc
             return prod_ids[0]
@@ -156,5 +159,5 @@ class GenericScraper:
         self.get_data(prod_id)
 
 
-    def add_ids(self, num_ids, lookup=True, query=None):
+    def add_ids(self, num_ids, lookup=True, keywords=None):
         return []

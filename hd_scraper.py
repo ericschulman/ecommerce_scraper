@@ -2,19 +2,19 @@ from gen_scraper import *
 
 class HomeDepotScraper(GenericScraper):
 
-    def __init__(self, db, main_query='drills'):
-        super(HomeDepotScraper, self).__init__(db, main_query=main_query)
-        self.base_url = 'https://www.homedepot.com/'
-        self.platform = 'HD'
+    def __init__(self,*args, **kwargs):
+        kwargs['url'] = 'https://www.homedepot.com/'
+        kwargs['platform'] = 'HD'
+        super(HomeDepotScraper, self).__init__(*args, **kwargs)
 
 
     def get_page(self,url):
         rawpage = super(HomeDepotScraper,self).get_page(url)
-        return rawpage.decode()
+        return rawpage
 
 
-    def search_url(self, query, page, sort='&Ns=P_Topseller_Sort|1'):
-        final_query = self.format_query(query)
+    def search_url(self, keywords, page, sort='&Ns=P_Topseller_Sort|1'):
+        final_query = self.format_query(keywords)
         page = (page-1)*24
         url =  self.base_url + 's/%s?isSearch=true&Nao=%s%s'%(final_query,page,sort)
         return url
@@ -65,9 +65,9 @@ class HomeDepotScraper(GenericScraper):
 
 
 
-    def add_ids(self, num_ids, lookup=False, query=None, page=1):
-        if query is None:
-            query = [self.main_query]
+    def add_ids(self, num_ids, lookup=False, keywords=None, page=1):
+        if keywords is None:
+            keywords = [self.query]
        
         search_rank = 1
         prod_ids = []
@@ -75,7 +75,7 @@ class HomeDepotScraper(GenericScraper):
 
         while page < max_page and search_rank <= num_ids:
 
-            url = self.search_url(query, page , sort='') if lookup else self.search_url(query, page)
+            url = self.search_url(keywords, page , sort='') if lookup else self.search_url(keywords, page)
             rawtext = self.get_page(url)
             tree = html.fromstring(rawtext)
 
@@ -92,9 +92,9 @@ class HomeDepotScraper(GenericScraper):
                 if not found_product:
                     in_name = True #get the product name
                     
-                    manuf,model = query[0], query[0]
-                    if len(query) >1:
-                        manuf,model= query[0],query[1]
+                    manuf,model = keywords[0], keywords[0]
+                    if len(keywords) >1:
+                        manuf,model= keywords[0],keywords[1]
                     
                     title =  self.get_model(items[index],index)
 
@@ -129,5 +129,6 @@ if __name__ == '__main__':
     scrap = HomeDepotScraper('db/')
     prod_id1 = '207051121'
     print(scrap.lookup_id(('BLACK+DECKER','LDX220C')))
-    #print(scrap.add_ids(10))
+    print(scrap.add_ids(10))
     scrap.write_data()
+    scrap.end_scrape()

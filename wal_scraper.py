@@ -3,19 +3,20 @@ from gen_scraper import *
 
 class WalmartScraper(GenericScraper):
 
-    def __init__(self, db, main_query='drills'):
-        super(WalmartScraper, self).__init__(db, main_query=main_query)
-        self.base_url = 'https://www.walmart.com/'
-        self.platform = 'WMT'
+    def __init__(self, *args, **kwargs):
+        kwargs['url'] = 'https://www.walmart.com/'
+        kwargs['platform'] = 'WMT'
+        super(WalmartScraper, self).__init__(*args, **kwargs)
+        
 
 
     def get_page(self,url):
         rawpage = super(WalmartScraper,self).get_page(url)
-        return rawpage.decode()
+        return rawpage
 
 
-    def search_url(self, query, page, sort='best_seller'):
-        final_query = self.format_query(query)
+    def search_url(self, keywords, page, sort='best_seller'):
+        final_query = self.format_query(keywords)
         url =  self.base_url + 'search/?cat_id=0&query=%s&sort=%s&page=%s&ps=40'%(final_query,sort,page)
         return url
 
@@ -24,9 +25,9 @@ class WalmartScraper(GenericScraper):
         return url
 
 
-    def add_ids(self, num_ids, lookup=False, query=None, page=1):
-        if query is None:
-            query = [self.main_query]
+    def add_ids(self, num_ids, lookup=False, keywords=None, page=1):
+        if keywords is None:
+            keywords = [self.query]
        
         search_rank = 1
         prod_ids = []
@@ -34,7 +35,7 @@ class WalmartScraper(GenericScraper):
 
         while page < max_page and search_rank <= num_ids:
 
-            url = self.search_url(query, page , sort='') if lookup else self.search_url(query, page)
+            url = self.search_url(keywords, page , sort='') if lookup else self.search_url(keywords, page)
             rawtext = self.get_page(url)
             tree = html.fromstring(rawtext)
 
@@ -55,9 +56,9 @@ class WalmartScraper(GenericScraper):
                     in_name = True
                     #get the product name
                     if 'title' in items[index].keys():
-                        manuf,model = query[0], query[0]
-                        if len(query) >1:
-                            manuf,model= query[0],query[1]
+                        manuf,model = keywords[0], keywords[0]
+                        if len(keywords) >1:
+                            manuf,model= keywords[0],keywords[1]
                             
                         title = items[index]['title']
                         in_name = model is not None and title.find(model) >= 0  # and title.find(manuf) >= 0
@@ -152,17 +153,10 @@ class WalmartScraper(GenericScraper):
         return self.data[prod_id]
 
 
-
-    def lookup_id_upc(self, upc):
-        prod_ids = self.add_ids(1,query=(upc))
-        if prod_ids != []:
-            self.data[prod_ids[0]]['upc'] = upc
-            return prod_ids[0]
-        return None
-
-
 if __name__ == '__main__':
     scrap = WalmartScraper('db/')
-    #print( len(scrap.add_ids(50) ))
+    print( len(scrap.add_ids(10) ))
     print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
-    #print(scrap.lookup_id(('DEWALT','DCD777C2')))
+    print(scrap.lookup_id(('DEWALT','DCD777C2')))
+    scrap.write_data()
+    scrap.end_scrape()

@@ -1,44 +1,58 @@
 from gen_scraper import *
-
+import selenium
 
 class AmazonScraper(GenericScraper):
         
-    def __init__(self, db, main_query='drills'):
-        super(AmazonScraper, self).__init__(db, main_query=main_query)
-        self.base_url = 'https://www.amazon.com/'
-        self.platform = 'AMZN'
-
-    def get_page(self,url):
-        rawpage = ''
-        for i in range(20):
-            rawpage = super(AmazonScraper,self).get_page(url)
-            if str(rawpage).find('not a robot. For best results, please make sure your browser is accepting cookies.') < 0:
-                rawpage = str(rawpage)
-                return str(rawpage)
-        return rawpage
+    def __init__(self, *args, **kwargs):
+        kwargs['url'] = 'https://www.amazon.com/'
+        kwargs['platform'] ='AMZN'
+        super(AmazonScraper, self).__init__(*args, **kwargs)
+        
         
 
-    def search_url(self, query, page,  sort='salesrank'):
-        final_query = self.format_query(query)
+    def search_url(self, keywords, page,  sort='salesrank'):
+        final_query = self.format_query(keywords)
         url =  self.base_url + 's?k=%s&s=%s&page=%s'%(final_query,sort,page)
         return url
 
     def prod_url(self, prod_id):
         return  self.base_url + 'dp/'+prod_id
 
+    def set_location(self,driver,retry=10):
+        #self.driver.set_window_size(550, 692)
+        if driver.page_source.find(self.location) > 0:
+                print('sweet victory')
+                return
+        try:
+            driver.get(self.base_url)
+            element = driver.find_element(By.CSS_SELECTOR, ".nav-logo-link > .nav-logo-base")
+            actions = ActionChains(driver)
+            actions.move_to_element(element).perform()
+            driver.find_element(By.ID, "glow-ingress-line1").click()
+            driver.find_element(By.ID, "GLUXZipUpdateInput").click()
+            driver.find_element(By.ID, "GLUXZipUpdateInput").send_keys(self.location)
+            driver.find_element(By.CSS_SELECTOR, "#GLUXZipUpdate .a-button-input").click()
+            driver.find_element(By.ID, "a-autoid-3-announce").click()
+            print(driver.page_source.find(self.location) > 0)
+        except Exception as e:
+            print(e)
+            self.set_location(driver,retry=retry-1)
 
-    def add_ids(self, num_ids, lookup = False, query= None, retry0=3, search_rank0=1, page0=1, asin_list0=[]):
+
+
+
+    def add_ids(self, num_ids, lookup = False, keywords= None, retry0=3, search_rank0=1, page0=1, asin_list0=[]):
         asin_list = asin_list0[:]
         page = page0
         search_rank = search_rank0
         retry = retry0
 
-        if query is None:
-            query = [self.main_query]
+        if keywords is None:
+            keywords = [self.query]
 
         max_page = 2 if lookup else 10
         while page < max_page and search_rank <= num_ids:
-            url = self.search_url(query, page, sort='') if lookup else self.search_url(query,page)
+            url = self.search_url(keywords, page, sort='') if lookup else self.search_url(keywords, page)
             
             rawtext = self.get_page(url)
             tree = html.fromstring(rawtext)
@@ -46,7 +60,7 @@ class AmazonScraper(GenericScraper):
             
             if len(search_box) <= 0: #no results
                 if retry >0:
-                    return self.add_ids(num_ids, lookup = lookup, query= query,retry0=retry-1,search_rank0=search_rank, page0=page, asin_list0=asin_list)
+                    return self.add_ids(num_ids, lookup = lookup, keywords= keywords, retry0=retry-1,search_rank0=search_rank, page0=page, asin_list0=asin_list)
                 else:
                     return asin_list
 
@@ -80,9 +94,9 @@ class AmazonScraper(GenericScraper):
                         in_name = False
                         title = str(etree.tostring(imgs[index]))
 
-                        manuf,model = query[0], query[0]
-                        if len(query) >1:
-                            manuf,model= query[0],query[1]
+                        manuf,model = keywords[0], keywords[0]
+                        if len(keywords) >1:
+                            manuf,model= keywords[0],keywords[1]
 
                         in_name = model is not None and title.find(model) >= 0 # and title.find(manuf) >= 0
                         if in_name:
@@ -305,5 +319,5 @@ if __name__ == '__main__':
     print( len(scrap.add_ids(10) ) )
     scrap.end_scrape()
     #print(len(scrap.data))
-    #scrap.write_data()
+    scrap.write_data()
     #scrap.write_data()
