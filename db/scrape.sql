@@ -16,7 +16,7 @@ CREATE TABLE "prices" (
 	"in_stock"	INTEGER,
 	"max_qty"	INTEGER,
 	"seller"	TEXT,
-	"arrives"	TEXT,
+	"arrives"	INTEGER,
 	"shipping" TEXT,
 	"shipping_price" NUMERIC,
 	"weight"	INTEGER,

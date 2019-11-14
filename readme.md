@@ -16,12 +16,6 @@ conda install -c conda-forge geckodriver
 * home depot - weight and other quantity information
 
 # amazon
-* change location with throw away accounts?
-* amazon find price when below suggested retail price
-* amazon shipping time/arrives correctly
-* amazon limited quantity number
-* seems like the incorrect # is being scraped
-* selenium broke some stuff
 
 ## companies:
 https://www.emarketer.com/content/digital-investments-pay-off-for-walmart-in-ecommerce-race

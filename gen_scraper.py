@@ -31,6 +31,7 @@ class GenericScraper:
         self.headless = headless
         self.drivers = []
         for i in range(2):
+            #pass
             self.add_driver()
         
         #create the database if it is not there
@@ -54,7 +55,7 @@ class GenericScraper:
         if self.headless:
            opts.set_headless()
         driver = webdriver.Firefox(options=opts)
-        #self.set_location(driver)
+        self.set_location(driver)
         self.drivers.append(driver)
 
 

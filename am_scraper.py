@@ -28,7 +28,12 @@ class AmazonScraper(GenericScraper):
             element = driver.find_element(By.CSS_SELECTOR, ".nav-logo-link > .nav-logo-base")
             actions = ActionChains(driver)
             actions.move_to_element(element).perform()
-            driver.find_element(By.ID, "glow-ingress-line1").click()
+            if retry%2 ==0:
+                driver.find_element(By.ID, "glow-ingress-line2").click()
+                driver.find_element(By.ID, "glow-ingress-line1").click()
+            else:
+                driver.find_element(By.ID, "glow-ingress-line1").click()
+                driver.find_element(By.ID, "glow-ingress-line2").click()
             driver.find_element(By.ID, "GLUXZipUpdateInput").click()
             driver.find_element(By.ID, "GLUXZipUpdateInput").send_keys(self.location)
             driver.find_element(By.CSS_SELECTOR, "#GLUXZipUpdate .a-button-input").click()
@@ -124,11 +129,9 @@ class AmazonScraper(GenericScraper):
                             asin_list.append(asin)
 
                         if self.data[asin]['rank'] is None or self.data[asin]['rank']==0:
-                            #print('changing rank %s to %s for %s ads %s'%( self.data[asin]['rank'],0 if lookup or is_ad else search_rank,asin,self.data[asin]['ads']))
                             self.data[asin]['rank'] = 0 if lookup or is_ad else search_rank
 
                 index = index +1
-                #print(('asin %s, index %s, is_ad %s,rank %s,len %s')%(asin, index, is_ad, search_rank, len(asin_list)))
                 
             page = page +1
         return asin_list
@@ -140,13 +143,15 @@ class AmazonScraper(GenericScraper):
             return None
         table = table[0]
         table = pd.read_html(etree.tostring(table , encoding='utf8', method='html'))[0]
-        table = table.applymap(lambda s: str(s).replace('\\n','').replace('\\t','').replace('  ', '')) #clean things up
+        table = table.applymap(lambda s: str(s).replace('\n','').replace('\t','').replace('  ', '')) #clean things up
         table = table.set_index(0)
         return table
     
 
     def get_num_sellers(self, tree):
-        listings = self.search_xpath(tree,"New & Used")
+        listings = self.search_xpath(tree,") from")
+        if listings == []:
+            listings = self.search_xpath(tree,"New & Used")
         if listings !=[]:
             listings = str(etree.tostring(listings[0]))
             ind1, ind2 = listings.find('('),listings.find(')')
@@ -165,13 +170,35 @@ class AmazonScraper(GenericScraper):
             price = tree.xpath("//*[@id='priceblock_saleprice']")
             if price != []:
                 return float(price[0].text[1:])
+        if price == []:    
+            price = tree.xpath("//*[@id='priceblock_ourprice']")
+            if price != []:
+                return float(price[0].text[1:])
+        if price ==[]:
+            price = tree.xpath("//*[@class='a-color-price']")
+            if price != [] and price[0].text is not None:
+                return float(price[0].text[1:])
         return None
-        
+    
+    def get_arrives(self,tree):
+        arrives = None
+        options =  ['One-Day Shipping','Two-Day Shipping', 'Local Express Shipping']
+        for i in range(3):
+            arrives_results =  self.search_xpath(tree,options[i])
+            if arrives_results != []:
+                date = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                date = date + datetime.timedelta(days=i)
+                arrives = self.to_epoch_time(date)
+        return arrives
+
+
 
     def get_data(self, asin, retry=3):
-        #return
+
         url =  self.prod_url(asin)
         rawtext = self.get_page(url)
+        #f= open('tests/test1.txt','r')
+        #rawtext = f.read()
         tree = html.fromstring(rawtext)
 
         ####### most important info first
@@ -184,20 +211,20 @@ class AmazonScraper(GenericScraper):
         
         #model number
         table1 =  self.amazon_table(tree,'productDetails_techSpec_section_1')
-        if  table1 is not None and ' Part Number' in list(table1.index):
-            model = table1.loc[' Part Number'][1]
-            self.data[asin]['model'] = model[1:]
+        if  table1 is not None and 'Part Number' in list(table1.index):
+            model = table1.loc['Part Number'][1]
+            self.data[asin]['model'] = model
             
-        elif table1 is not None and ' Item model number' in list(table1.index):
-            model = table1.loc[' Item model number'][1]
-            self.data[asin]['model'] = model[1:]
+        elif table1 is not None and 'Item model number' in list(table1.index):
+            model = table1.loc['Item model number']
+            self.data[asin]['model'] = model
 
 
         #'product':None,
         product = tree.xpath("//*[@id='productTitle']")
         if product !=[]:
             product = product[0].text
-            product = product.replace('\\n','').replace('  ', '')
+            product = product.replace('\n','').replace('  ', '')
             self.data[asin]['product'] = product
         
         #sale price
@@ -218,28 +245,27 @@ class AmazonScraper(GenericScraper):
         seller = tree.xpath("//*[@id='comparison_sold_by_row']")
         if seller != []:
             self.data[asin]['seller'] = seller[0][1][0].text
+
+        #shipping 
+        shipping = tree.xpath("//*[@id='comparison_shipping_info_row']")
+        if shipping != []:
+            self.data[asin]['shipping'] = shipping[0][1][0].text
         
         #'listings'
         self.data[asin]['quantity1']= self.get_num_sellers(tree)
 
-        #rank in page
-
 
         #only x left in stock
+        only_left = self.search_xpath(tree,'in stock - order soon.')
+        if only_left !=[]:
+            only_left = only_left[0].text
+            only_left = only_left[only_left.find('Only ')+5:only_left.find(' left')]
+            self.data[asin]['quantity3'] = int(only_left)
 
 
-        #shipping description
-
-
-        #shipping cost
-    
-
-        #'arrives'
-        arrives =  self.search_xpath(tree,'Two-Day Shipping')
-        if arrives != []:
-            date = datetime.datetime.now() + datetime.timedelta(days=1)
-            self.data[asin]['arrives'] = self.to_epoch_time(date)
+        self.data[asin]['arrives'] = self.get_arrives(tree)
         
+
         #'rating'
         ratings = tree.xpath("//*[@id='acrPopover']")
         if ratings !=[]:
@@ -255,13 +281,13 @@ class AmazonScraper(GenericScraper):
                 
         #'weight'
         table2 = self.amazon_table(tree,'productDetails_detailBullets_sections1')
-        if table2 is not None and ' Shipping Weight' in list(table2.index):
-            weight = table2.loc[' Shipping Weight'][1][1:]
+        if table2 is not None and 'Shipping Weight' in list(table2.index):
+            weight = table2.loc['Shipping Weight'][1]
             weight = weight[:weight.find(' ')]
             self.data[asin]['weight'] = float(weight)
 
-        if table2 is not None and ' Best Sellers Rank' in list(table2.index):
-            rank = table2.loc[' Best Sellers Rank'].loc[1]
+        if table2 is not None and 'Best Sellers Rank' in list(table2.index):
+            rank = table2.loc['Best Sellers Rank'].loc[1]
             rank = rank[rank.find('#'):]
             rank = rank[1:rank.find(' ')]
             rank = int(rank.replace(',',''))
@@ -327,7 +353,12 @@ if __name__ == '__main__':
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
     print( len(scrap.add_ids(50) ) )
-    #scrap.end_scrape()
-    #print(len(scrap.data))
+    scrap.end_scrape()
     scrap.write_data()
+
+    #scrap.data = {'yo_mama':{}}
+    #scrap.get_data('yo_mama')
+    #print(scrap.data)
+
+    
     #scrap.write_data()
