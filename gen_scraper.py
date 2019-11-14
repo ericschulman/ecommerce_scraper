@@ -31,7 +31,6 @@ class GenericScraper:
         self.headless = headless
         self.drivers = []
         for i in range(2):
-            #pass
             self.add_driver()
         
         #create the database if it is not there
@@ -154,9 +153,10 @@ class GenericScraper:
         'date':date, 'rank':None ,'page':None ,  'upc':None, 'query':None,'product':None,
         'manufacturer':None, 'model':None, 'price':None, 'list_price':None, 'in_stock':None, 
         'max_qty':None, 'seller':None, 'arrives':None,
-        'shipping':None, 'shipping_price':None,
+        'shipping':None, 'shipping_price':None, 'shipping_options':None,
+        'store_pickup':None,'store_address':None, 'store_zip':None, 'store_price':None,
         'weight':None, 'reviews':None, 'rating':None,
-        'quantity1':None, 'quantity2':None, 'quantity3':None, 'ads':None}
+        'quantity1':None, 'quantity2':None, 'quantity3':None, 'quantity4':None, 'ads':None}
         self.get_data(prod_id)
 
 

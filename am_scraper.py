@@ -19,28 +19,23 @@ class AmazonScraper(GenericScraper):
         return  self.base_url + 'dp/'+prod_id
 
     def set_location(self,driver,retry=20):
-        #self.driver.set_window_size(550, 692)
+
         if driver.page_source.find(self.location) > 0 or retry <= 0:
                 print('sweet victory', retry)
                 return
         try:
             driver.get(self.base_url)
-            element = driver.find_element(By.CSS_SELECTOR, ".nav-logo-link > .nav-logo-base")
             time.sleep(1)
             if retry%2 ==0:
                 driver.find_element(By.ID, "glow-ingress-line2").click()
-                driver.find_element(By.ID, "glow-ingress-line1").click()
             else:
                 driver.find_element(By.ID, "glow-ingress-line1").click()
-                driver.find_element(By.ID, "glow-ingress-line2").click()
             time.sleep(1)
             driver.find_element(By.ID, "GLUXZipUpdateInput").click()
             driver.find_element(By.ID, "GLUXZipUpdateInput").send_keys(self.location)
-            time.sleep(1)
             driver.find_element(By.CSS_SELECTOR, "#GLUXZipUpdate .a-button-input").click()
-            time.sleep(1)
+            time.sleep(3)
             driver.find_element(By.ID, "a-autoid-3-announce").click()
-            print(driver.page_source.find(self.location) > 0)
         except Exception as e:
             print(e)
             self.set_location(driver,retry=retry-1)
@@ -354,7 +349,7 @@ if __name__ == '__main__':
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
-    print( len(scrap.add_ids(50) ) )
+    #print( len(scrap.add_ids(50) ) )
     scrap.end_scrape()
     scrap.write_data()
 

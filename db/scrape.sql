@@ -19,11 +19,18 @@ CREATE TABLE "prices" (
 	"arrives"	INTEGER,
 	"shipping" TEXT,
 	"shipping_price" NUMERIC,
+	"shipping_options" INTEGER,
+	"store_pickup" INTEGER,
+	"store_address" TEXT,
+	"store_zip" TEXT,
+	"store_price" NUMERIC,
 	"weight"	INTEGER,
 	"reviews"	INTEGER,
 	"rating"	NUMERIC,
 	"quantity1"	INTEGER,
 	"quantity2" INTEGER,
 	"quantity3" INTEGER,
+	"quantity4" INTEGER,
+	"quantity5" INTEGER,
 	"ads" INTEGER 
 )

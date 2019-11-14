@@ -8,7 +8,17 @@ class WalmartScraper(GenericScraper):
         kwargs['platform'] = 'WMT'
         super(WalmartScraper, self).__init__(*args, **kwargs)
         
-
+    def set_location(self,driver,retry=20):
+        try:
+            driver.get("https://www.walmart.com/")
+            driver.find_element(By.CSS_SELECTOR, ".i_b:nth-child(3)").click()
+            time.sleep(3)
+            driver.find_element(By.CSS_SELECTOR, ".ao_c").click()
+            driver.find_element(By.CSS_SELECTOR, ".ao_c").send_keys("78722")
+            driver.find_element(By.CSS_SELECTOR, ".o_c:nth-child(3) > .i_a").click()
+        except Exception as e:
+            print(e)
+            self.set_location(driver,retry=retry-1)
 
     def get_page(self,url):
         rawpage = super(WalmartScraper,self).get_page(url)
@@ -49,7 +59,7 @@ class WalmartScraper(GenericScraper):
             index = 0
 
             while index < len(items) and  search_rank <= num_ids:
-                #print(items[index])
+
                 prod_id = items[index]['usItemId']
                 found_product = not lookup
                 if not found_product:
@@ -75,6 +85,11 @@ class WalmartScraper(GenericScraper):
                         self.data[prod_id]['rank'] = 0 if lookup else search_rank
                         self.data[prod_id]['ads'] = 0
                         self.data[prod_id]['page'] = page
+
+                        if 'shouldHaveSponsoredItemMargin' in items[index].keys():
+                            self.data[prod_id]['ads'] = int(items[index]['shouldHaveSponsoredItemMargin'])
+                        if 'shouldHaveSpecialOfferMargin' in items[index].keys():
+                            self.data[prod_id]['quantity2'] = int(items[index]['shouldHaveSpecialOfferMargin'])
                     
                         if 'quantity' in items[index].keys():
                             self.data[prod_id]['quantity1'] = items[index]['quantity']
@@ -87,17 +102,24 @@ class WalmartScraper(GenericScraper):
 
 
 
-    def get_data(self, prod_id):
+    def get_data(self, prod_id, test=None):
+      
         url = self.prod_url(prod_id)
-        rawtext = self.get_page(url)
+
+        rawtext =''
+
+        if test is None:
+            rawtext = self.get_page(url)
+        else:
+            f = open(test,'r')
+            rawtext = f.read()
         tree = html.fromstring(rawtext)
+        
         upc_data = tree.xpath("//*[@id='item']")
         if len(upc_data) ==0:
             return None
-
         upc_data = upc_data[0]
         datastore = json.loads(upc_data.text)
-        
         #get weight
         try:
             prod_info = list(datastore['item']['product']['idmlMap'].values())[0]
@@ -118,25 +140,50 @@ class WalmartScraper(GenericScraper):
 
         #get other stuff
         try:
-            
             data = datastore['item']['product']['buyBox']['products'][0]
-            walmart_names = ['upc','brandName','productName', 'model', 'reviewsCount', 'averageRating',
-                             'maxQuantity','sellerDisplayName']
-            my_names = ['upc','manufacturer','product','model','reviews','rating','max_qty', 'seller']
-                
+            #try for shipping data   
             try:
                 self.data[prod_id]['in_stock']  = int(data['shippable'])
+                self.data[prod_id]['store_pickup']  = int(data['pickupable'])
+
                 for key in ['earliestDeliverDate','exactDeliveryDate']:
                     if key in data['shippingOptionToDisplay']['fulfillmentDateRange'].keys():
                         ship_date = data['shippingOptionToDisplay']['fulfillmentDateRange'][key]
-                        self.data[prod_id]['arrives'] =  int(ship_date) 
+                        self.data[prod_id]['arrives'] =  int(ship_date)
+
+                    if 'fulfillmentPriceType' in data['shippingOptionToDisplay'].keys():
+                        self.data[prod_id]['shipping'] = data['shippingOptionToDisplay']['shipMethod']
+
+                    if 'fulfillmentPrice' in data['shippingOptionToDisplay'].keys():
+                        self.data[prod_id]['shipping_price'] = float(data['shippingOptionToDisplay']['fulfillmentPrice']['price'])
+
             except KeyError:
                 print('no shipping ' + prod_id)
-                
-                
+
+            if 'shippingOptions' in data.keys():
+                self.data[prod_id]['shipping_options'] = len(data['shippingOptions'])
+
+            
+            walmart_names = ['upc','brandName','productName', 'model', 'reviewsCount', 'averageRating',
+                             'maxQuantity','sellerDisplayName']
+            my_names = ['upc','manufacturer','product','model','reviews','rating','max_qty', 'seller']
+             
             for i in range(len(walmart_names)):
                 if walmart_names[i] in data.keys():
                     self.data[prod_id][my_names[i]] = data[walmart_names[i]]
+
+            #get store pickup data
+            try:
+                pickup = data['pickupOptions'][0]
+                self.data[prod_id]['store_address'] = pickup['storeAddress'] +', ' +pickup['storeCity'] + ', ' + pickup['storeStateOrProvinceCode']
+                self.data[prod_id]['store_zip'] = pickup['storePostalCode']
+                if 'urgentQuantity' in pickup:
+                    self.data[prod_id]['quantity3'] =  pickup['urgentQuantity']
+                self.data[prod_id]['store_price'] = pickup['inStorePackagePrice']['price']
+
+            except:
+                print('no pickup' + prod_id)
+
                     
             #pricing data
             if 'priceMap' in data.keys():
@@ -156,7 +203,12 @@ class WalmartScraper(GenericScraper):
 if __name__ == '__main__':
     scrap = WalmartScraper('db/')
     print( len(scrap.add_ids(10) ))
-    print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
-    print(scrap.lookup_id(('DEWALT','DCD777C2')))
-    scrap.write_data()
+    #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
+    #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
+    #scrap.data = {'yo_mama':{}}
+    #scrap.get_data('yo_mama')
+    #print(scrap.data)
+    #scrap.write_data()
+    #print(scrap.lookup_id(('DEWALT','DCD777C2')))
+    #scrap.write_data()
     scrap.end_scrape()
