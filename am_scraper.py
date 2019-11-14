@@ -18,10 +18,10 @@ class AmazonScraper(GenericScraper):
     def prod_url(self, prod_id):
         return  self.base_url + 'dp/'+prod_id
 
-    def set_location(self,driver,retry=10):
+    def set_location(self,driver,retry=20):
         #self.driver.set_window_size(550, 692)
-        if driver.page_source.find(self.location) > 0:
-                print('sweet victory')
+        if driver.page_source.find(self.location) > 0 or retry <= 0:
+                print('sweet victory', retry)
                 return
         try:
             driver.get(self.base_url)
@@ -41,7 +41,7 @@ class AmazonScraper(GenericScraper):
 
 
 
-    def add_ids(self, num_ids, lookup = False, keywords= None, retry0=3, search_rank0=1, page0=1, asin_list0=[]):
+    def add_ids(self, num_ids, lookup = False, keywords= None, retry0=3, search_rank0=0, page0=1, asin_list0=[]):
         asin_list = asin_list0[:]
         page = page0
         search_rank = search_rank0
@@ -51,7 +51,7 @@ class AmazonScraper(GenericScraper):
             keywords = [self.query]
 
         max_page = 2 if lookup else 10
-        while page < max_page and search_rank <= num_ids:
+        while page < max_page and search_rank < num_ids:
             url = self.search_url(keywords, page, sort='') if lookup else self.search_url(keywords, page)
             
             rawtext = self.get_page(url)
@@ -68,7 +68,8 @@ class AmazonScraper(GenericScraper):
 
             imgs = search_results.xpath("//img[@class='s-image']")
             index = 0
-            while index < len(search_results) and  search_rank <= num_ids:
+
+            while index < len(search_results) and  search_rank < num_ids:
                 if ('class' in dict(search_results[index].attrib).keys() 
                         and 'data-asin' in dict(search_results[index].attrib).keys()):
                     
@@ -88,7 +89,6 @@ class AmazonScraper(GenericScraper):
                         continue
 
                     is_ad =  int('AdHolder' in search_results[index].attrib['class'])
-
                     #if we are looking up, see if it's the right product
                     if not is_ad and not found_product:
                         in_name = False
@@ -110,16 +110,25 @@ class AmazonScraper(GenericScraper):
                         if asin not in self.data.keys():
                             self.create_id(asin)
                             self.data[asin]['query'] = url
-                            self.data[asin]['rank'] = 0 if (lookup or is_ad) else search_rank
-                            self.data[asin]['ads'] = 1 if is_ad else 0
+                            self.data[asin]['ads'] = 0
                             self.data[asin]['page'] = page
 
-                        incr = 0 if is_ad else 1
-                        search_rank = search_rank + incr
-                        asin_list.append(asin)
+                        if is_ad:
+                            self.data[asin]['ads'] = 1
 
+                        already_ranked =  self.data[asin]['rank'] is not None and self.data[asin]['rank'] > 0
+                        incr = 0 if is_ad==1 or already_ranked else 1
+                        search_rank = search_rank + incr
+
+                        if asin not in asin_list:
+                            asin_list.append(asin)
+
+                        if self.data[asin]['rank'] is None or self.data[asin]['rank']==0:
+                            #print('changing rank %s to %s for %s ads %s'%( self.data[asin]['rank'],0 if lookup or is_ad else search_rank,asin,self.data[asin]['ads']))
+                            self.data[asin]['rank'] = 0 if lookup or is_ad else search_rank
 
                 index = index +1
+                #print(('asin %s, index %s, is_ad %s,rank %s,len %s')%(asin, index, is_ad, search_rank, len(asin_list)))
                 
             page = page +1
         return asin_list
@@ -131,7 +140,7 @@ class AmazonScraper(GenericScraper):
             return None
         table = table[0]
         table = pd.read_html(etree.tostring(table , encoding='utf8', method='html'))[0]
-        table = table.applymap(lambda s: s.replace('\\n','').replace('\\t','').replace('  ', '')) #clean things up
+        table = table.applymap(lambda s: str(s).replace('\\n','').replace('\\t','').replace('  ', '')) #clean things up
         table = table.set_index(0)
         return table
     
@@ -160,7 +169,7 @@ class AmazonScraper(GenericScraper):
         
 
     def get_data(self, asin, retry=3):
-
+        #return
         url =  self.prod_url(asin)
         rawtext = self.get_page(url)
         tree = html.fromstring(rawtext)
@@ -312,12 +321,13 @@ if __name__ == '__main__':
 
     scrap = AmazonScraper('db/')
     #print(scrap.lookup_id(('BLACK+DECKER','LDX220C')))
+    #print(scrap.data)
     #print(scrap.lookup_id(('BLACK+DECKER','BCD702C2BWM')))
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
     #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
-    print( len(scrap.add_ids(10) ) )
-    scrap.end_scrape()
+    print( len(scrap.add_ids(50) ) )
+    #scrap.end_scrape()
     #print(len(scrap.data))
     scrap.write_data()
     #scrap.write_data()

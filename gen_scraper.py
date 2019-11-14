@@ -54,7 +54,7 @@ class GenericScraper:
         if self.headless:
            opts.set_headless()
         driver = webdriver.Firefox(options=opts)
-        self.set_location(driver)
+        #self.set_location(driver)
         self.drivers.append(driver)
 
 
@@ -149,7 +149,7 @@ class GenericScraper:
     def create_id(self,prod_id):
         date = datetime.datetime.now()
         date = self.to_epoch_time(date)
-        self.data[prod_id] = {'platform':self.platform, 'website':self.base_url, 
+        self.data[prod_id] = {'platform':self.platform, 'website':self.base_url, 'zipcode':self.location,
         'date':date, 'rank':None ,'page':None ,  'upc':None, 'query':None,'product':None,
         'manufacturer':None, 'model':None, 'price':None, 'list_price':None, 'in_stock':None, 
         'max_qty':None, 'seller':None, 'arrives':None,

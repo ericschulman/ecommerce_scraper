@@ -2,6 +2,7 @@ CREATE TABLE "prices" (
 	"platform" TEXT,
 	"website"	TEXT,
 	"date"	INTEGER,
+	"zipcode" TEXT,
 	"rank" INTEGER,
 	"page" INTEGER,
 	"query" TEXT,
