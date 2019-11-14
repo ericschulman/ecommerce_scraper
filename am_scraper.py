@@ -26,17 +26,19 @@ class AmazonScraper(GenericScraper):
         try:
             driver.get(self.base_url)
             element = driver.find_element(By.CSS_SELECTOR, ".nav-logo-link > .nav-logo-base")
-            actions = ActionChains(driver)
-            actions.move_to_element(element).perform()
+            time.sleep(1)
             if retry%2 ==0:
                 driver.find_element(By.ID, "glow-ingress-line2").click()
                 driver.find_element(By.ID, "glow-ingress-line1").click()
             else:
                 driver.find_element(By.ID, "glow-ingress-line1").click()
                 driver.find_element(By.ID, "glow-ingress-line2").click()
+            time.sleep(1)
             driver.find_element(By.ID, "GLUXZipUpdateInput").click()
             driver.find_element(By.ID, "GLUXZipUpdateInput").send_keys(self.location)
+            time.sleep(1)
             driver.find_element(By.CSS_SELECTOR, "#GLUXZipUpdate .a-button-input").click()
+            time.sleep(1)
             driver.find_element(By.ID, "a-autoid-3-announce").click()
             print(driver.page_source.find(self.location) > 0)
         except Exception as e:

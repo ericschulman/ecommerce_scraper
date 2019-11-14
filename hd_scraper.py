@@ -12,6 +12,28 @@ class HomeDepotScraper(GenericScraper):
         rawpage = super(HomeDepotScraper,self).get_page(url)
         return rawpage
 
+    def set_location(self,driver,retry=20):
+        if retry <= 0:
+            return
+        driver.get("https://www.homedepot.com/")
+        try:
+            driver.find_element(By.XPATH, '//*[@class="MyStore__label"]').click()
+            driver.find_element(By.XPATH, '//*[@class="MyStore__store"]').click()
+            driver.find_element(By.XPATH, '//*[@class="MyStore__label"]').click()
+            driver.find_element(By.XPATH, '//*[@class="MyStore__store"]').click()
+            time.sleep(5)
+            driver.find_element(By.XPATH, '//*[@class="bttn__content" and text()="Find Other Stores"]').click()
+            time.sleep(2)
+            driver.find_element(By.ID, "txtStoreFinder").click()
+            driver.find_element(By.ID, "txtStoreFinder").click()
+            driver.find_element(By.ID, "txtStoreFinder").send_keys("78722")
+            driver.find_element(By.CSS_SELECTOR, ".icon-search").click()
+            time.sleep(2)
+            driver.find_element(By.CSS_SELECTOR, ".sfStoreRow:nth-child(1) .bttn__content").click()
+        except Exception as e:
+            print(e)
+            self.set_location(driver,retry=retry-1)
+
 
     def search_url(self, keywords, page, sort='&Ns=P_Topseller_Sort|1'):
         final_query = self.format_query(keywords)
@@ -129,6 +151,7 @@ if __name__ == '__main__':
     scrap = HomeDepotScraper('db/')
     prod_id1 = '207051121'
     print(scrap.lookup_id(('BLACK+DECKER','LDX220C')))
-    print(scrap.add_ids(10))
-    scrap.write_data()
+    print(scrap.data)
+    #print(scrap.add_ids(10))
+    #scrap.write_data()
     scrap.end_scrape()
