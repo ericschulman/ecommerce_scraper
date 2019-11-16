@@ -180,13 +180,15 @@ class AmazonScraper(GenericScraper):
     def get_arrives(self,tree):
         arrives = None
         options =  ['One-Day Shipping','Two-Day Shipping', 'Local Express Shipping']
+        shipping_opt = 0 
         for i in range(3):
             arrives_results =  self.search_xpath(tree,options[i])
             if arrives_results != []:
                 date = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
                 date = date + datetime.timedelta(days=i)
+                shipping_opt = i
                 arrives = self.to_epoch_time(date)
-        return arrives
+        return arrives,shipping_opt
 
 
 
@@ -260,7 +262,7 @@ class AmazonScraper(GenericScraper):
             self.data[asin]['quantity3'] = int(only_left)
 
 
-        self.data[asin]['arrives'] = self.get_arrives(tree)
+        self.data[asin]['arrives']. self.data[asin]['shipping_options'] = self.get_arrives(tree)
         
 
         #'rating'

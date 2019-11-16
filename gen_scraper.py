@@ -20,7 +20,7 @@ from selenium.webdriver.firefox.options import Options
 
 class GenericScraper:
 
-    def __init__(self, db, url='', platform='', query='drills',location = '78722', headless=False):
+    def __init__(self, db, url='', platform='', query='drills',location = '78722', headless=False, test_file=None):
         self.counter = 0
         self.base_url = url
         self.db = db
@@ -30,8 +30,12 @@ class GenericScraper:
         self.location = location
         self.headless = headless
         self.drivers = []
-        for i in range(2):
-            self.add_driver()
+        self.test_file = test_file # pass a file in for the purposes of init
+        if self.test_file is None:
+            for i in range(2):
+                    self.add_driver()
+        else:
+            self.data = {self.test_file:{}}
         
         #create the database if it is not there
         if not os.path.isfile(db+'scrape.db') :
@@ -41,6 +45,13 @@ class GenericScraper:
             cur = con.cursor()
             cur.executescript(sql)
             con.commit()
+
+
+    def get_driver(self):
+        if self.test_file is None:
+            return self.drivers[self.counter%2]
+        else:
+            return None
 
     def end_scrape(self):
         for driver in self.drivers:
@@ -154,7 +165,7 @@ class GenericScraper:
         'manufacturer':None, 'model':None, 'price':None, 'list_price':None, 'in_stock':None, 
         'max_qty':None, 'seller':None, 'arrives':None,
         'shipping':None, 'shipping_price':None, 'shipping_options':None,
-        'store_pickup':None,'store_address':None, 'store_zip':None, 'store_price':None,
+        'store_stock':None,'store_address':None, 'store_zip':None, 'store_price':None,
         'weight':None, 'reviews':None, 'rating':None,
         'quantity1':None, 'quantity2':None, 'quantity3':None, 'quantity4':None, 'ads':None}
         self.get_data(prod_id)

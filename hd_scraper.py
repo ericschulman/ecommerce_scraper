@@ -5,6 +5,7 @@ class HomeDepotScraper(GenericScraper):
     def __init__(self,*args, **kwargs):
         kwargs['url'] = 'https://www.homedepot.com/'
         kwargs['platform'] = 'HD'
+        self.store = {'store_address':None, 'store_zip':None}
         super(HomeDepotScraper, self).__init__(*args, **kwargs)
 
 
@@ -26,9 +27,14 @@ class HomeDepotScraper(GenericScraper):
             time.sleep(2)
             driver.find_element(By.ID, "txtStoreFinder").click()
             driver.find_element(By.ID, "txtStoreFinder").click()
-            driver.find_element(By.ID, "txtStoreFinder").send_keys("78722")
+            driver.find_element(By.ID, "txtStoreFinder").send_keys(self.location)
             driver.find_element(By.CSS_SELECTOR, ".icon-search").click()
             time.sleep(2)
+            #get data from store
+            self.store['store_address'] = driver.find_element(By.CSS_SELECTOR, ".sfStoreRow:nth-child(1) .street-address").text +', '
+            self.store['store_address'] = self.store['store_address'] + driver.find_element(By.CSS_SELECTOR, ".sfStoreRow:nth-child(1) .locality").text +', '
+            self.store['store_address'] = self.store['store_address'] + driver.find_element(By.CSS_SELECTOR, ".sfStoreRow:nth-child(1) .region").text
+            self.store['store_zip'] = driver.find_element(By.CSS_SELECTOR, ".sfStoreRow:nth-child(1) .postal-code").text
             driver.find_element(By.CSS_SELECTOR, ".sfStoreRow:nth-child(1) .bttn__content").click()
         except Exception as e:
             print(e)
@@ -55,7 +61,64 @@ class HomeDepotScraper(GenericScraper):
         return None
 
 
+    def get_data(self,prod_id):
+        return self.data[prod_id]
+        url = self.prod_url(prod_id)
+        rawtext =''
+
+        if self.test_file is None:
+            rawtext = self.get_page(url)
+        else:
+            f = open(test_file,'r')
+            rawtext = f.read()
+
+        tree = html.fromstring(rawtext)
+
+        #weight
+        weight = rawtext.xpath('//*[@itemprop="weight"]')
+        if len(weight) > 0:
+            print(etree.tostring(weight))
+            print(weight.text[:-2] )
+            self.data[prod_id] = weight.text[:-2] 
+        
+        return self.data[prod_id]
+
+
+    def get_shipping(self, item, index, prod_id):
+        #shipping
+        shipping = item.xpath( '//*[@class="pod-plp__shipping-message__wrapper-boss-bopis "]')
+        if len(shipping) > index:
+            if str(shipping[index][0][0].text).find('d') < 0:
+                self.data[prod_id]['shipping'] = shipping[index][0][0][0].text
+            else:
+                self.data[prod_id]['shipping'] = shipping[index][0][0].text
+
+        pickup = item.xpath( '//*[@class="pod-plp__fulfillment-message__wrapper-boss-bopis "]')
+        store_stock = []
+        if len(pickup) > index:
+            pickup = etree.fromstring(etree.tostring(pickup[index])) #must be a better way to do this...
+            store_stock = pickup.xpath( '//*[@class="Inventory-Stock__wrapper"]' )
+
+            if len(store_stock) > 0:
+                store_stock = str(etree.tostring(store_stock[0]))
+                store_stock = store_stock[store_stock.find('<span>')+6:store_stock.find('</span>')]
+                self.data[prod_id]['quantity1'] = int(store_stock)
+
+            messages = ['Unavailable at your store','Limited stock','Free ship to store for pickup']
+            for message in messages:
+                message_disp = self.search_xpath(pickup,message)
+                if len(message_disp) > 0:
+                    self.data[prod_id]["store_stock"] = message_disp[0].text
+
+
+
+        
+        #limited stock
+        #in store pickup
+
     def get_data_results(self, item, index, prod_id):
+        self.data[prod_id]['store_address'] = self.store['store_address']
+        self.data[prod_id]['store_zip'] = self.store['store_zip']
 
         manuf = self.search_xpath(item,'pod-plp__brand-name')
         if len(manuf) > index:
@@ -73,6 +136,13 @@ class HomeDepotScraper(GenericScraper):
                 self.data[prod_id]['price'] = float(main_info.attrib['data-price'][1:])
             else:
                 self.data[prod_id]['price'] = float(main_info.attrib['data-price'][1:])
+        
+        limited_q = str(etree.tostring(item))
+
+        if limited_q.find(' per order') > 0:
+            limited_q = int(limited_q[limited_q.find('Limit ')+6:limited_q.find(' per order')])
+            self.data[prod_id]['quantity2'] = limited_q
+
         ratings = self.search_xpath(item,'out of 5 stars')
         
         if len(ratings) > index:
@@ -83,7 +153,6 @@ class HomeDepotScraper(GenericScraper):
             reviews = str(reviews[2*index+1].text)
             reviews = reviews[reviews.find('(')+1:reviews.find(')')]
             self.data[prod_id]['reviews'] = int(reviews)
-
 
 
 
@@ -98,9 +167,14 @@ class HomeDepotScraper(GenericScraper):
         while page < max_page and search_rank <= num_ids:
 
             url = self.search_url(keywords, page , sort='') if lookup else self.search_url(keywords, page)
-            rawtext = self.get_page(url)
-            tree = html.fromstring(rawtext)
+            rawtext =''
+            if self.test_file is None:
+                rawtext = self.get_page(url)
+            else:
+                f = open(test_file,'r')
+                rawtext = f.read()
 
+            tree = html.fromstring(rawtext)
             items = tree.xpath('//*[@data-component="productpod"]')
             if len(items) == 0:
                 return []
@@ -138,6 +212,7 @@ class HomeDepotScraper(GenericScraper):
 
                         #seems like all data is on search results
                         self.get_data_results(items[index],index, prod_id)
+                        self.get_shipping(items[index], index, prod_id)
                     
                 search_rank = search_rank +1
                 index = index +1
@@ -148,10 +223,21 @@ class HomeDepotScraper(GenericScraper):
 
 
 if __name__ == '__main__':
-    scrap = HomeDepotScraper('db/')
-    prod_id1 = '207051121'
-    print(scrap.lookup_id(('BLACK+DECKER','LDX220C')))
-    print(scrap.data)
-    #print(scrap.add_ids(10))
-    #scrap.write_data()
-    scrap.end_scrape()
+    test = False
+    if test:
+        test_file = 'tests/test_hd1.txt'
+        scrap = HomeDepotScraper('db/',test_file=test_file)
+        #scrap.add_ids(24)
+        scrap.get_data(test_file)
+        #scrap.write_data()
+        #print(scrap.data[ list(scrap.data.keys())[1]])
+        
+
+    if not test:   
+        scrap = HomeDepotScraper('db/')
+        scrap.add_ids(10)
+        #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
+        #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
+        #print(scrap.lookup_id(('DEWALT','DCD777C2')))
+        scrap.write_data()
+        scrap.end_scrape()

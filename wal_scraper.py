@@ -12,9 +12,9 @@ class WalmartScraper(GenericScraper):
         try:
             driver.get("https://www.walmart.com/")
             driver.find_element(By.CSS_SELECTOR, ".i_b:nth-child(3)").click()
-            time.sleep(3)
+            time.sleep(4)
             driver.find_element(By.CSS_SELECTOR, ".ao_c").click()
-            driver.find_element(By.CSS_SELECTOR, ".ao_c").send_keys("78722")
+            driver.find_element(By.CSS_SELECTOR, ".ao_c").send_keys(self.location)
             driver.find_element(By.CSS_SELECTOR, ".o_c:nth-child(3) > .i_a").click()
         except Exception as e:
             print(e)
@@ -102,17 +102,18 @@ class WalmartScraper(GenericScraper):
 
 
 
-    def get_data(self, prod_id, test=None):
+    def get_data(self, prod_id):
       
         url = self.prod_url(prod_id)
 
         rawtext =''
 
-        if test is None:
+        if self.test_file is None:
             rawtext = self.get_page(url)
         else:
-            f = open(test,'r')
+            f = open(test_file,'r')
             rawtext = f.read()
+
         tree = html.fromstring(rawtext)
         
         upc_data = tree.xpath("//*[@id='item']")
@@ -144,7 +145,6 @@ class WalmartScraper(GenericScraper):
             #try for shipping data   
             try:
                 self.data[prod_id]['in_stock']  = int(data['shippable'])
-                self.data[prod_id]['store_pickup']  = int(data['pickupable'])
 
                 for key in ['earliestDeliverDate','exactDeliveryDate']:
                     if key in data['shippingOptionToDisplay']['fulfillmentDateRange'].keys():
@@ -179,10 +179,14 @@ class WalmartScraper(GenericScraper):
                 self.data[prod_id]['store_zip'] = pickup['storePostalCode']
                 if 'urgentQuantity' in pickup:
                     self.data[prod_id]['quantity3'] =  pickup['urgentQuantity']
-                self.data[prod_id]['store_price'] = pickup['inStorePackagePrice']['price']
+                if "inStoreStockStatus" in pickup.keys():
+                    self.data[prod_id]['store_stock'] = pickup['inStoreStockStatus']
+                if  'inStorePackagePrice' in pickup.keys():
+                    self.data[prod_id]['store_price'] = pickup['inStorePackagePrice']['price']
+
 
             except:
-                print('no pickup' + prod_id)
+                print('no pickup ' + prod_id)
 
                     
             #pricing data
@@ -201,14 +205,19 @@ class WalmartScraper(GenericScraper):
 
 
 if __name__ == '__main__':
-    scrap = WalmartScraper('db/')
-    print( len(scrap.add_ids(10) ))
-    #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
-    #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
-    #scrap.data = {'yo_mama':{}}
-    #scrap.get_data('yo_mama')
-    #print(scrap.data)
-    #scrap.write_data()
-    #print(scrap.lookup_id(('DEWALT','DCD777C2')))
-    #scrap.write_data()
-    scrap.end_scrape()
+
+    test = False
+    if test:
+        test_file = 'tests/test_wal1.txt'
+        scrap = WalmartScraper('db/',test_file=test_file)
+        scrap.get_data(test_file)
+        print(scrap.data)
+
+    if not test:   
+        scrap = WalmartScraper('db/')
+        scrap.add_ids(10)
+        #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
+        #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
+        #print(scrap.lookup_id(('DEWALT','DCD777C2')))
+        scrap.write_data()
+        scrap.end_scrape()

@@ -20,7 +20,7 @@ CREATE TABLE "prices" (
 	"shipping" TEXT,
 	"shipping_price" NUMERIC,
 	"shipping_options" INTEGER,
-	"store_pickup" INTEGER,
+	"store_stock" TEXT,
 	"store_address" TEXT,
 	"store_zip" TEXT,
 	"store_price" NUMERIC,
