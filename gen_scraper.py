@@ -17,6 +17,7 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
+from selenium.common.exceptions import TimeoutException
 
 class GenericScraper:
 
@@ -72,7 +73,12 @@ class GenericScraper:
     def get_page(self, url):
         self.counter = self.counter +1
         driver = self.drivers[self.counter%2]
-        driver.get(url)
+       
+        try:
+            driver.get(url)
+        except TimeoutException:
+            pass
+
         rawtext = driver.page_source
         return rawtext
 
