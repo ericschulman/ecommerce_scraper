@@ -31,9 +31,10 @@ class GenericScraper:
         self.location = location
         self.headless = headless
         self.drivers = []
+        self.num_drivers = 1
         self.test_file = test_file # pass a file in for the purposes of init
         if self.test_file is None:
-            for i in range(2):
+            for i in range(self.num_drivers):
                     self.add_driver()
         else:
             self.data = {self.test_file:{}}
@@ -50,7 +51,7 @@ class GenericScraper:
 
     def get_driver(self):
         if self.test_file is None:
-            return self.drivers[self.counter%2]
+            return self.drivers[self.counter%self.num_drivers]
         else:
             return None
 
@@ -66,13 +67,13 @@ class GenericScraper:
         if self.headless:
            opts.set_headless()
         driver = webdriver.Firefox(options=opts)
-        self.set_location(driver)
+        driver = self.set_location(driver)
         self.drivers.append(driver)
 
 
     def get_page(self, url):
         self.counter = self.counter +1
-        driver = self.drivers[self.counter%2]
+        driver = self.drivers[self.counter%self.num_drivers]
        
         try:
             driver.get(url)
