@@ -2,7 +2,9 @@ from gen_scraper import *
 from selenium.common.exceptions import TimeoutException
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.keys import Keys
 import random
+from selenium import webdriver
 
 class LowesScraper(GenericScraper):
 
@@ -13,48 +15,60 @@ class LowesScraper(GenericScraper):
         super(LowesScraper, self).__init__(*args, **kwargs)
 
 
-    def get_page(self,url):
-        rawpage = super(LowesScraper,self).get_page(url)
+    def get_page(self,url,retry=5):
+        rawpage = '<!DOCTYPE html><html><body>yo</body></html>'
+        try: 
+            rawpage = super(LowesScraper,self).get_page(url)
+        except:
+            time.sleep(4)
+            return self.get_page(url,retry=retry-1)
         return rawpage
 
     def set_location(self,driver,retry=20):
         if retry <= 0:
-            return
+            return driver
         try:
             driver.set_page_load_timeout(10)
             urls = ['https://www.lowes.com/pd/BLACK-DECKER-20-Volt-Max-3-8-in-Cordless-Drill-Charger-Included/999982360',
                 'https://www.lowes.com/pd/DEWALT-20-Volt-Max-1-2-in-Brushless-Cordless-Drill-Charger-Included/1000135807',
                 'https://www.lowes.com/pd/Rain-X-Latitude-28-Wiper-Blade/3472541',
-                'https://www.lowes.com/pd/Pedigree-17-9-lbs-Healthy-Puppies-Dog-Food/3530418' ]
-            driver.get(urls[random.randint(0,3)])
-            #driver.get('https://www.lowes.com/search?searchTerm=drills/')
+                'https://www.lowes.com/pd/Pedigree-17-9-lbs-Healthy-Puppies-Dog-Food/3530418' ] #land on a random page
+            index = retry%4
+            print(index)
+            driver.get(urls[index])
+
             if driver.page_source.find('Access Denied') > 0:
                 print('Access denied')
-                driver.close()
-
-                #make a new driver
+                driver.close()                 #make a new driver
                 opts = Options()
                 if self.headless:
                     opts.set_headless()
                 driver = webdriver.Firefox(options=opts)
-                self.set_location(driver,retry=retry-1)
+                return self.set_location(driver,retry=retry-1)
 
         except TimeoutException:
             driver.execute_script("window.stop();")
 
         try:
             driver.find_element(By.CSS_SELECTOR, ".find-store-copy").click()
-            time.sleep(5)
+            time.sleep(4)
             driver.find_element(By.ID, "search-box").click()
             time.sleep(2)
             driver.find_element(By.ID, "search-box").send_keys(self.location)
             driver.find_element(By.CSS_SELECTOR, ".btn-default").click()
-            time.sleep(5)
-            address = driver.find_element(By.XPATH, '//*[@class="art-fsp-storeAddressBlk0"]').text
-            address = str(address).replace('\n', ', ')
-            self.store['store_address'] = address
-            self.store['store_zip'] = self.location
-            driver.find_element(By.CSS_SELECTOR, ".art-fsp-shopThisStoreBtn0").click()
+
+            time.sleep(4)
+            try:
+                driver.find_element(By.XPATH, '//*[@class="btn-group centered art-fsp-mystoreLbl0"]').click()#.send_keys(Keys.ESCAPE)
+                print('already set')
+                webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+                return driver
+            except:
+                address = driver.find_element(By.XPATH, '//*[@class="art-fsp-storeAddressBlk0"]').text
+                address = str(address).replace('\n', ', ')
+                self.store['store_address'] = address
+                self.store['store_zip'] = self.location
+                driver.find_element(By.CSS_SELECTOR, ".art-fsp-shopThisStoreBtn0").click()
 
         except TimeoutException:
             driver.execute_script("window.stop();")
@@ -62,7 +76,7 @@ class LowesScraper(GenericScraper):
 
         except Exception as e:
             print(e)
-            self.set_location(driver,retry=retry-1)
+            return self.set_location(driver,retry=retry-1)
 
         return driver
 
@@ -95,7 +109,7 @@ class LowesScraper(GenericScraper):
 
     def get_data(self,prod_id):
         url = self.prod_url(prod_id)
-        print(url)
+        #print(url)
         rawtext =''
         
         self.data[prod_id]['store_address'] = self.store['store_address']
@@ -103,13 +117,10 @@ class LowesScraper(GenericScraper):
 
         if self.test_file is None:
             rawtext = self.get_page(url)
-            f= open('tests/test_lo2.txt','w+')
-            f.write(rawtext)
-            f.close()
         else:
             f = open(test_file,'r')
             rawtext = f.read()
-        #print(rawtext)
+
         tree = html.fromstring(rawtext)
         redirect = tree.xpath('//*[@class="js-gauge-track-pdp product-title '+\
             'js-product-title met-product-title v-spacing-mini ellipsis-three-line art-plp-itemDescription"]')
@@ -117,12 +128,12 @@ class LowesScraper(GenericScraper):
         if len(redirect) == 0:
             pass
         else:
-            print( self.base_url[:-1]+ redirect[0].attrib['data-producturl'] )
+            #print( self.base_url[:-1]+ redirect[0].attrib['data-producturl'] )
             rawtext = self.get_page(self.base_url[:-1]+ redirect[0].attrib['data-producturl'])
             tree = html.fromstring(rawtext)
 
+        #___________________________ price, listprice, manufacturer, model, product, below retail ___________________________
         try:
-            #price
             price = tree.xpath('//span[@itemprop="price"]')[0].attrib['content']
             self.data[prod_id]['price'] = float(price)
 
@@ -130,26 +141,22 @@ class LowesScraper(GenericScraper):
             self.data[prod_id]['product'] = tree.xpath('//meta[@itemprop="name"]')[0].attrib['content']
             self.data[prod_id]['model'] = tree.xpath('//span[@class="met-product-model"]')[0].text
 
-            #quantity1 - below retail
+            #quantity2 - below retail
             q2 = self.search_xpath(tree,'View Price In Cart')
             if len(q2) > 0:
                 self.data[prod_id]['quantity2'] = 1
             else:
                 self.data[prod_id]['quantity2'] = 0
             
-            #list price
             list_price = tree.xpath('//span[@class="secondary-text small-type art-pd-wasPriceLbl"]')[0].text[len(' Was $'):]
-            #print(list_price)
-            #print(float(list_price))
             self.data[prod_id]['list_price'] = float(list_price)
         except:
             pass
 
-        #in_stock/shipping
+        #___________________________ shipping information ___________________________
         try:
             stock = tree.xpath('//*[@class="fulfillment-method-body media"]')
-            #q1 - store stock
-            store_stock = stock[0].xpath('//*[@class="gauge-pickup"]')
+            store_stock = stock[0].xpath('//*[@class="gauge-pickup"]') #quantity1 storestock
 
             if len(store_stock) == 0:
                 self.data[prod_id]['quantity1'] = 0
@@ -159,7 +166,6 @@ class LowesScraper(GenericScraper):
                 store_stock = store_stock[store_stock.find('\\n')+2:]
                 store_stock = int(store_stock[:store_stock.find('available')])
                 self.data[prod_id]['quantity1'] = store_stock
-
 
             in_stock = stock[1]
             in_stock = str(etree.tostring(in_stock))
@@ -174,12 +180,10 @@ class LowesScraper(GenericScraper):
             elif in_stock.find('Delivery available') > 0:
                 self.data[prod_id]['in_stock'] = 1
                 self.data[prod_id]['shipping'] = 'Delivery available'
-
         except:
             pass
 
-
-        #weight
+        #___________________________ weight ___________________________
         try:      
             weight = tree.xpath('//*[@class="table full-width no-borders"]')
             weight = str(etree.tostring(weight[0]))
@@ -191,12 +195,12 @@ class LowesScraper(GenericScraper):
         except:
             pass
 
+        #___________________________ ratings, reviews ___________________________
         try:
-            #ratings
+
             ratings = tree.xpath('//*[@class="js-average-rating"]')
             self.data[prod_id]['rating'] = float(ratings[0].text)
 
-            #reviews
             reviews = tree.xpath('//*[@class="reviews-count art-pdp-lblTopRatingSummaryValue"]')[0]
             reviews = int(reviews.text[:-len(' Ratings')])
             self.data[prod_id]['reviews'] = reviews
@@ -220,14 +224,11 @@ class LowesScraper(GenericScraper):
         while page < max_page and search_rank <= num_ids:
 
             url = self.search_url(keywords, page , sort='') if lookup else self.search_url(keywords, page)
-            print(url)
+            #print(url)
             rawtext =''
             if self.test_file is None:
                 rawtext = self.get_page(url)
                 time.sleep(5)
-                f= open('tests/test_lo1.txt','w+')
-                f.write(rawtext)
-                f.close()
             else:
                 f = open(test_file,'r')
                 rawtext = f.read()
@@ -277,7 +278,6 @@ class LowesScraper(GenericScraper):
                         self.data[prod_id]['rank'] = 0 if lookup else search_rank
                         self.data[prod_id]['ads'] = 0
                         self.data[prod_id]['page'] = page
-
                         #extra data
                         try:
                             self.data[prod_id]['model'] = title
@@ -285,7 +285,6 @@ class LowesScraper(GenericScraper):
                             self.data[prod_id]['reviews'] = int(ratings[index][0][1].text[1:-1])
                         except:
                             pass
-
                     
                 search_rank = search_rank +1
                 index = index +1
@@ -310,13 +309,13 @@ if __name__ == '__main__':
         
 
     if not test:   
-        scrap = LowesScraper('db/')
+        scrap = LowesScraper('db/',location = '78705')
         #scrap.add_ids(50)
 
         #scrap.create_id("918748")
         print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
         #print(scrap.data)
-        print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
+        #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
         print(scrap.lookup_id(('DEWALT','DCD777C2')))
-        scrap.write_data()
-        scrap.end_scrape()
+        #scrap.write_data()
+        #scrap.end_scrape()

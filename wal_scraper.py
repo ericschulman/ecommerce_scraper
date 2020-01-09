@@ -1,4 +1,6 @@
 from gen_scraper import *
+from selenium.common.exceptions import TimeoutException
+import selenium
 
 
 class WalmartScraper(GenericScraper):
@@ -9,16 +11,37 @@ class WalmartScraper(GenericScraper):
         super(WalmartScraper, self).__init__(*args, **kwargs)
         
     def set_location(self,driver,retry=20):
+        driver.set_page_load_timeout(10)
         try:
             driver.get("https://www.walmart.com/")
+        except TimeoutException:
+            driver.execute_script("window.stop();")
+
+        try:
             driver.find_element(By.CSS_SELECTOR, ".i_b:nth-child(3)").click()
-            time.sleep(4)
+            time.sleep(2)
             driver.find_element(By.CSS_SELECTOR, ".ao_c").click()
             driver.find_element(By.CSS_SELECTOR, ".ao_c").send_keys(self.location)
             driver.find_element(By.CSS_SELECTOR, ".o_c:nth-child(3) > .i_a").click()
+            time.sleep(2)
+        except TimeoutException:
+            driver.execute_script("window.stop();")
+        except selenium.common.exceptions.ElementNotInteractableException:
+            try:
+                driver.find_element(By.CSS_SELECTOR, ".i_b:nth-child(3)").click()
+                time.sleep(4)
+                driver.find_element(By.CSS_SELECTOR, ".ao_c").click()
+                driver.find_element(By.CSS_SELECTOR, ".ao_c").send_keys(self.location)
+                driver.find_element(By.CSS_SELECTOR, ".o_c:nth-child(3) > .i_a").click()
+                time.sleep(2)
+            except Exception as e:
+                print(e)
+                return self.set_location(driver,retry=retry-1)
+
         except Exception as e:
             print(e)
-            self.set_location(driver,retry=retry-1)
+            return self.set_location(driver,retry=retry-1)
+        return driver
 
     def get_page(self,url):
         rawpage = super(WalmartScraper,self).get_page(url)

@@ -1,6 +1,8 @@
 from gen_scraper import *
 from wal_scraper import *
 from am_scraper import *
+from lo_scraper import *
+from hd_scraper import *
 
 
 class MetaScraper():
@@ -44,7 +46,7 @@ class MetaScraper():
 
 if __name__ == '__main__':
     db = 'db/'
-    scrapers = [AmazonScraper(db),WalmartScraper(db)]
-    ms  = MetaScraper(scrapers,10,'drills')
+    scrapers = [LowesScraper(db), HomeDepotScraper(db), WalmartScraper(db), AmazonScraper(db)]
+    ms  = MetaScraper(scrapers, 20,'drills')
     ms.run_scrape()
     ms.write_data()

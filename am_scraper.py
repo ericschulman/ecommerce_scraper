@@ -1,5 +1,6 @@
 from gen_scraper import *
 import selenium
+from selenium.common.exceptions import TimeoutException
 
 class AmazonScraper(GenericScraper):
         
@@ -21,10 +22,13 @@ class AmazonScraper(GenericScraper):
     def set_location(self,driver,retry=20):
 
         if driver.page_source.find(self.location) > 0 or retry <= 0:
-                print('sweet victory', retry)
-                return
+            print('sweet victory', retry)
+            return driver
         try:
             driver.get(self.base_url)
+        except TimeoutException:
+            driver.execute_script("window.stop();")
+        try:
             time.sleep(1)
             if retry%2 ==0:
                 driver.find_element(By.ID, "glow-ingress-line2").click()
@@ -38,7 +42,8 @@ class AmazonScraper(GenericScraper):
             driver.find_element(By.ID, "a-autoid-3-announce").click()
         except Exception as e:
             print(e)
-            self.set_location(driver,retry=retry-1)
+            return self.set_location(driver,retry=retry-1)
+        return driver
 
 
 
@@ -262,7 +267,7 @@ class AmazonScraper(GenericScraper):
             self.data[asin]['quantity3'] = int(only_left)
 
 
-        self.data[asin]['arrives']. self.data[asin]['shipping_options'] = self.get_arrives(tree)
+        self.data[asin]['arrives'], self.data[asin]['shipping_options']= self.get_arrives(tree)
         
 
         #'rating'

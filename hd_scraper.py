@@ -1,4 +1,5 @@
 from gen_scraper import *
+from selenium.common.exceptions import TimeoutException
 
 class HomeDepotScraper(GenericScraper):
 
@@ -14,10 +15,11 @@ class HomeDepotScraper(GenericScraper):
         return rawpage
 
     def set_location(self,driver,retry=20):
+        return driver
         if retry <= 0:
-            return
-        driver.get("https://www.homedepot.com/")
+            return driver
         try:
+            driver.get("https://www.homedepot.com/")
             driver.find_element(By.XPATH, '//*[@class="MyStore__label"]').click()
             driver.find_element(By.XPATH, '//*[@class="MyStore__store"]').click()
             driver.find_element(By.XPATH, '//*[@class="MyStore__label"]').click()
@@ -38,7 +40,8 @@ class HomeDepotScraper(GenericScraper):
             driver.find_element(By.CSS_SELECTOR, ".sfStoreRow:nth-child(1) .bttn__content").click()
         except Exception as e:
             print(e)
-            self.set_location(driver,retry=retry-1)
+            return self.set_location(driver,retry=retry-1)
+        return driver
 
 
     def search_url(self, keywords, page, sort='&Ns=P_Topseller_Sort|1'):
@@ -62,7 +65,7 @@ class HomeDepotScraper(GenericScraper):
 
 
     def get_data(self,prod_id):
-        return self.data[prod_id]
+        #return self.data[prod_id]
         url = self.prod_url(prod_id)
         rawtext =''
 
@@ -73,13 +76,10 @@ class HomeDepotScraper(GenericScraper):
             rawtext = f.read()
 
         tree = html.fromstring(rawtext)
-
         #weight
-        weight = rawtext.xpath('//*[@itemprop="weight"]')
+        weight = tree.xpath('//*[@itemprop="weight"]')
         if len(weight) > 0:
-            print(etree.tostring(weight))
-            print(weight.text[:-2] )
-            self.data[prod_id] = weight.text[:-2] 
+            self.data[prod_id]['weight'] = float(weight[0].text[:-2])
         
         return self.data[prod_id]
 
@@ -203,7 +203,6 @@ class HomeDepotScraper(GenericScraper):
                 if found_product:
                     prod_ids.append(prod_id)
                     if prod_id not in self.data.keys():
-                        pass
                         self.create_id(prod_id)
                         self.data[prod_id]['query'] = url
                         self.data[prod_id]['rank'] = 0 if lookup else search_rank
@@ -235,9 +234,9 @@ if __name__ == '__main__':
 
     if not test:   
         scrap = HomeDepotScraper('db/')
-        scrap.add_ids(10)
+        #scrap.add_ids(10)
         #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
         #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
-        #print(scrap.lookup_id(('DEWALT','DCD777C2')))
-        scrap.write_data()
-        scrap.end_scrape()
+        print(scrap.lookup_id(('DEWALT','DCD777C2')))
+        #scrap.write_data()
+        #scrap.end_scrape()

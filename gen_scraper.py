@@ -21,7 +21,7 @@ from selenium.common.exceptions import TimeoutException
 
 class GenericScraper:
 
-    def __init__(self, db, url='', platform='', query='drills',location = '78722', headless=False, test_file=None):
+    def __init__(self, db, url='', platform='', query='drills',location = '78722', headless=False, test_file=None,num_drivers=1):
         self.counter = 0
         self.base_url = url
         self.db = db
@@ -31,7 +31,7 @@ class GenericScraper:
         self.location = location
         self.headless = headless
         self.drivers = []
-        self.num_drivers = 1
+        self.num_drivers = num_drivers
         self.test_file = test_file # pass a file in for the purposes of init
         if self.test_file is None:
             for i in range(self.num_drivers):
