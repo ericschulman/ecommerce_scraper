@@ -15,7 +15,6 @@ class HomeDepotScraper(GenericScraper):
         return rawpage
 
     def set_location(self,driver,retry=20):
-        return driver
         if retry <= 0:
             return driver
         try:
@@ -234,9 +233,9 @@ if __name__ == '__main__':
 
     if not test:   
         scrap = HomeDepotScraper('db/')
-        #scrap.add_ids(10)
+        print(scrap.add_ids(10))
         #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
         #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
-        print(scrap.lookup_id(('DEWALT','DCD777C2')))
+        #print(scrap.lookup_id(('DEWALT','DCD777C2')))
         #scrap.write_data()
         #scrap.end_scrape()
