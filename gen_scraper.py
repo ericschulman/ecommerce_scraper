@@ -33,6 +33,7 @@ class GenericScraper:
         self.drivers = []
         self.num_drivers = num_drivers
         self.test_file = test_file # pass a file in for the purposes of init
+        self.geckodriver_path = '/home/erichschulman/anaconda3/bin/geckodriver'
         if self.test_file is None:
             for i in range(self.num_drivers):
                     self.add_driver()
@@ -66,7 +67,7 @@ class GenericScraper:
         opts = Options()
         if self.headless:
            opts.set_headless()
-        driver = webdriver.Firefox(options=opts)
+        driver = webdriver.Firefox(options=opts, executable_path=self.geckodriver_path)
         driver = self.set_location(driver)
         self.drivers.append(driver)
 

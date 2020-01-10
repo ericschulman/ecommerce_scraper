@@ -43,7 +43,7 @@ class LowesScraper(GenericScraper):
                 opts = Options()
                 if self.headless:
                     opts.set_headless()
-                driver = webdriver.Firefox(options=opts)
+                driver = webdriver.Firefox(options=opts, executable_path=self.geckodriver_path)
                 return self.set_location(driver,retry=retry-1)
 
         except TimeoutException:

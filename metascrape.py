@@ -33,14 +33,19 @@ class MetaScraper():
                 other_scraper_ids = []
                 for product in products:
                     if product is not None:
-                        print(product, other_scraper.platform, scraper.platform)
-                        print(other_scraper.lookup_id(product))
-                        print('<----->')
+                        #create a text file with output from the scrape
+                        #print(product, other_scraper.platform, scraper.platform)
+                        #print(other_scraper.lookup_id(product))
+                        #print('<----->')
 
 
     def write_data(self):
+        #get the number of observations for each scraper
         for scraper in self.scrapers:
+            print('<----->')
+            print(scraper.platform, len(scraper.data))
             scraper.write_data()
+            print('<----->')
 
 
 
