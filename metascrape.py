@@ -33,9 +33,10 @@ class MetaScraper():
                 other_scraper_ids = []
                 for product in products:
                     if product is not None:
+
                         #create a text file with output from the scrape
                         #print(product, other_scraper.platform, scraper.platform)
-                        #print(other_scraper.lookup_id(product))
+                        other_scraper.lookup_id(product)
                         #print('<----->')
 
 
