@@ -15,17 +15,9 @@ class LowesScraper(GenericScraper):
         super(LowesScraper, self).__init__(*args, **kwargs)
 
 
-    def get_page(self,url,retry=5):
-        rawpage = '<!DOCTYPE html><html><body>yo</body></html>'
-        try: 
-            rawpage = super(LowesScraper,self).get_page(url)
-        except:
-            time.sleep(4)
-            return self.get_page(url,retry=retry-1)
-        return rawpage
-
     def set_location(self,driver,retry=20):
         if retry <= 0:
+
             return driver
         try:
             driver.set_page_load_timeout(10)
@@ -34,7 +26,6 @@ class LowesScraper(GenericScraper):
                 'https://www.lowes.com/pd/Rain-X-Latitude-28-Wiper-Blade/3472541',
                 'https://www.lowes.com/pd/Pedigree-17-9-lbs-Healthy-Puppies-Dog-Food/3530418' ] #land on a random page
             index = retry%4
-            print(index)
             driver.get(urls[index])
 
             if driver.page_source.find('Access Denied') > 0:
@@ -313,9 +304,10 @@ if __name__ == '__main__':
         #scrap.add_ids(50)
 
         #scrap.create_id("918748")
-        print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
+        #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
         #print(scrap.data)
         #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
-        print(scrap.lookup_id(('DEWALT','DCD777C2')))
+        #print(scrap.lookup_id(('DEWALT','DCD777C2')))
+        print(scrap.lookup_id(('DEWALT', 'DCK278C2')))
         #scrap.write_data()
         #scrap.end_scrape()

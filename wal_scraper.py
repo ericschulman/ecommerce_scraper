@@ -43,10 +43,6 @@ class WalmartScraper(GenericScraper):
             return self.set_location(driver,retry=retry-1)
         return driver
 
-    def get_page(self,url):
-        rawpage = super(WalmartScraper,self).get_page(url)
-        return rawpage
-
 
     def search_url(self, keywords, page, sort='best_seller'):
         final_query = self.format_query(keywords)

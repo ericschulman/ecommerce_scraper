@@ -36,6 +36,7 @@ class GenericScraper:
         self.geckodriver_path = '/home/erichschulman/anaconda3/bin/geckodriver'
         if self.test_file is None:
             for i in range(self.num_drivers):
+                    print('------ initializing %s'%self.platform)
                     self.add_driver()
         else:
             self.data = {self.test_file:{}}
@@ -72,7 +73,7 @@ class GenericScraper:
         self.drivers.append(driver)
 
 
-    def get_page(self, url):
+    def get_page_helper(self, url):
         self.counter = self.counter +1
         driver = self.drivers[self.counter%self.num_drivers]
        
@@ -83,6 +84,17 @@ class GenericScraper:
 
         rawtext = driver.page_source
         return rawtext
+
+
+    def get_page(self,url,retry=5):
+        rawpage = '<!DOCTYPE html><html><body>yo</body></html>'
+        try: 
+            rawpage = self.get_page_helper(url)
+        except:
+            time.sleep(4)
+            rawpage = self.get_page(url,retry=retry-1)
+        return rawpage
+
 
     def format_query(self, keywords):
         assert type(keywords) == list

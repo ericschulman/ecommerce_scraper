@@ -10,10 +10,6 @@ class HomeDepotScraper(GenericScraper):
         super(HomeDepotScraper, self).__init__(*args, **kwargs)
 
 
-    def get_page(self,url):
-        rawpage = super(HomeDepotScraper,self).get_page(url)
-        return rawpage
-
     def set_location(self,driver,retry=20):
         if retry <= 0:
             return driver
@@ -87,10 +83,11 @@ class HomeDepotScraper(GenericScraper):
         #shipping
         shipping = item.xpath( '//*[@class="pod-plp__shipping-message__wrapper-boss-bopis "]')
         if len(shipping) > index:
-            if str(shipping[index][0][0].text).find('d') < 0:
-                self.data[prod_id]['shipping'] = shipping[index][0][0][0].text
-            else:
-                self.data[prod_id]['shipping'] = shipping[index][0][0].text
+            if len(shipping[index][0]) > 0: #need to check how to deal with new line tokens
+                if str(shipping[index][0][0].text).find('d') < 0:
+                    self.data[prod_id]['shipping'] = shipping[index][0][0][0].text
+                else:
+                    self.data[prod_id]['shipping'] = shipping[index][0][0].text
 
         pickup = item.xpath( '//*[@class="pod-plp__fulfillment-message__wrapper-boss-bopis "]')
         store_stock = []
@@ -172,7 +169,6 @@ class HomeDepotScraper(GenericScraper):
             else:
                 f = open(test_file,'r')
                 rawtext = f.read()
-
             tree = html.fromstring(rawtext)
             items = tree.xpath('//*[@data-component="productpod"]')
             if len(items) == 0:
@@ -233,9 +229,12 @@ if __name__ == '__main__':
 
     if not test:   
         scrap = HomeDepotScraper('db/')
-        print(scrap.add_ids(10))
+        #print(scrap.add_ids(10))
         #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
         #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
         #print(scrap.lookup_id(('DEWALT','DCD777C2')))
+        print(scrap.lookup_id(('WORX', 'WX169L.9')))
+        print(scrap.lookup_id(('BLACK+DECKER', 'LDX120PK')))
+        #scrap.create_id('204067339')
         #scrap.write_data()
         #scrap.end_scrape()
