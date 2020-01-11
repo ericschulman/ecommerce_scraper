@@ -88,11 +88,13 @@ class GenericScraper:
 
     def get_page(self,url,retry=5):
         rawpage = '<!DOCTYPE html><html><body>yo</body></html>'
-        try: 
+        try:
             rawpage = self.get_page_helper(url)
         except:
-            time.sleep(4)
-            rawpage = self.get_page(url,retry=retry-1)
+            if retry >= 0:
+                print('error with %s'%url)
+                time.sleep(4)
+                rawpage = self.get_page(url,retry=retry-1)
         return rawpage
 
 

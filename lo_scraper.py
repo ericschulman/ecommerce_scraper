@@ -16,6 +16,7 @@ class LowesScraper(GenericScraper):
 
 
     def set_location(self,driver,retry=20):
+        return driver
         if retry <= 0:
 
             return driver
@@ -100,7 +101,6 @@ class LowesScraper(GenericScraper):
 
     def get_data(self,prod_id):
         url = self.prod_url(prod_id)
-        #print(url)
         rawtext =''
         
         self.data[prod_id]['store_address'] = self.store['store_address']
@@ -119,7 +119,6 @@ class LowesScraper(GenericScraper):
         if len(redirect) == 0:
             pass
         else:
-            #print( self.base_url[:-1]+ redirect[0].attrib['data-producturl'] )
             rawtext = self.get_page(self.base_url[:-1]+ redirect[0].attrib['data-producturl'])
             tree = html.fromstring(rawtext)
 
@@ -215,7 +214,6 @@ class LowesScraper(GenericScraper):
         while page < max_page and search_rank <= num_ids:
 
             url = self.search_url(keywords, page , sort='') if lookup else self.search_url(keywords, page)
-            #print(url)
             rawtext =''
             if self.test_file is None:
                 rawtext = self.get_page(url)
