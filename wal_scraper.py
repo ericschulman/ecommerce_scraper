@@ -11,6 +11,9 @@ class WalmartScraper(GenericScraper):
         super(WalmartScraper, self).__init__(*args, **kwargs)
         
     def set_location(self,driver,retry=20):
+        if retry <= 0:
+            return driver
+
         driver.set_page_load_timeout(10)
         try:
             driver.get("https://www.walmart.com/")
@@ -234,9 +237,9 @@ if __name__ == '__main__':
 
     if not test:   
         scrap = WalmartScraper('db/')
-        scrap.add_ids(10)
+        #scrap.add_ids(10)
         #print(scrap.lookup_id(('BLACK+DECKER','LD120VA')))
         #print(scrap.lookup_id(('Hyper Tough','AQ75023G')))
         #print(scrap.lookup_id(('DEWALT','DCD777C2')))
-        scrap.write_data()
-        scrap.end_scrape()
+        #scrap.write_data()
+        #scrap.end_scrape()

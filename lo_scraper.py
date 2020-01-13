@@ -16,9 +16,7 @@ class LowesScraper(GenericScraper):
 
 
     def set_location(self,driver,retry=20):
-        return driver
         if retry <= 0:
-
             return driver
         try:
             driver.set_page_load_timeout(10)
