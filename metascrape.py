@@ -69,7 +69,7 @@ if __name__ == '__main__':
     db = 'db/'
     scrapers = [LowesScraper(db), HomeDepotScraper(db), WalmartScraper(db), AmazonScraper(db)]
     print('------ scrapers initialized')
-    ms  = MetaScraper(scrapers, 5,'drills')
+    ms  = MetaScraper(scrapers, 20,'drills')
     try:
         ms.run_scrape()
     except:
